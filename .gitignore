@@ -1,0 +1,52 @@
+# Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# IDE
+.idea/
+.vscode/
+
+# Model weights & exports
+*.pt
+*.onnx
+
+# Dataset (large, stored on Modal Volume — NOT committed)
+ai-model/data/
+merged-ppe/
+
+# Training outputs / downloaded results
+local_runs/
+runs/
+
+# Debug artifacts
+parse_model.txt
+
+ai-model/docs/
+AGENTS.md
+ai-model/outputs/baseline_*
+ai-model/outputs/cbam_*
+ai-model/outputs/ghost_*
+ai-model/*.onnx
+ai-model/*.pt
+ai-model/AGENTS.md
+# Media & Videos
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.webm
+edge-pipeline/media/videos/input/*
+!edge-pipeline/media/videos/input/.gitkeep
+edge-pipeline/media/videos/processed/*
+!edge-pipeline/media/videos/processed/.gitkeep
+
+# Logs & runs
+logs/
+edge-pipeline/logs/

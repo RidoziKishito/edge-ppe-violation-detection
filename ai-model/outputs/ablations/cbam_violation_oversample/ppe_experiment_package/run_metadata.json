@@ -1,0 +1,12 @@
+{
+  "created_at": "2026-05-17T11:00:36.824933+00:00",
+  "dataset_root": "/kaggle/input/datasets/nhatphatnguyen/construction-ppe-safety-merged-dataset/merged-ppe",
+  "project_root": "/kaggle/input/datasets/nhatphatnguyen/ai-model",
+  "run_experiments": [
+    "cbam_violation_oversample"
+  ],
+  "fast_debug": false,
+  "device": "0,1",
+  "seed": 42,
+  "best_model_selection_metric": "mean_violation_map50"
+}

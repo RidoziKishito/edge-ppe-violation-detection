@@ -1,0 +1,16 @@
+{
+  "experiment": "baseline_violation_oversample",
+  "status": "ok",
+  "target": "imbalance_oversample",
+  "weights": "/kaggle/working/ppe_yolo_experiments/runs/baseline_violation_oversample/weights/best.pt",
+  "map50": 0.6897172280739831,
+  "map50_95": 0.3874418302519819,
+  "precision": 0.7940778568644379,
+  "recall": 0.6376883889205591,
+  "inference_ms": 3.179789989219298,
+  "mean_violation_map50": 0.5857631977322909,
+  "no_helmet_map50": 0.7905806925268823,
+  "no_goggle_map50": 0.7895620145725968,
+  "no_gloves_map50": 0.747898948012097,
+  "no_boots_map50": 0.015011135817587434
+}

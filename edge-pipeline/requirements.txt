@@ -1,0 +1,8 @@
+opencv-python
+onnxruntime
+numpy
+flask
+ultralytics
+onnx
+onnxslim
+pillow

@@ -1,0 +1,2 @@
+experiment,status,target,weights,map50,map50_95,precision,recall,inference_ms,mean_violation_map50,no_helmet_map50,no_goggle_map50,no_gloves_map50,no_boots_map50
+ghost_existing_repro,ok,architecture_efficiency,/kaggle/working/ppe_yolo_experiments/runs/ghost_existing_repro/weights/best.pt,0.612938698151087,0.3273330010357405,0.7496417725699495,0.5751247378852729,3.108880810720742,0.5184220047212756,0.6881519209028304,0.7163588574069018,0.6688200977182279,0.00035714285714285714

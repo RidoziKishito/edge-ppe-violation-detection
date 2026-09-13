@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Trinity Dashboard{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-mark"></span>
+        <div>
+          <div class="brand-name">Trinity</div>
+          <div class="brand-subtitle">Safety Monitor</div>
+        </div>
+      </div>
+      <nav class="nav-list" aria-label="Primary navigation">
+        <a class="nav-item {% if active_page == 'monitor' %}active{% endif %}" href="{{ url_for('index') }}">Live Monitor</a>
+        <a class="nav-item {% if active_page == 'analytics' %}active{% endif %}" href="{{ url_for('analytics') }}">Analytics</a>
+        <a class="nav-item {% if active_page == 'events' %}active{% endif %}" href="{{ url_for('events_page') }}">Event Log</a>
+        <a class="nav-item {% if active_page == 'status' %}active{% endif %}" href="{{ url_for('status') }}">System Status</a>
+      </nav>
+      <div class="sidebar-note">
+        Edge AI PPE monitoring for construction safety officers.
+      </div>
+    </aside>
+
+    <main class="main-content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

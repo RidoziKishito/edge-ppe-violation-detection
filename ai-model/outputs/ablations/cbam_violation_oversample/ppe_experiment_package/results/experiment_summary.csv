@@ -1,0 +1,2 @@
+experiment,status,target,weights,map50,map50_95,precision,recall,inference_ms,mean_violation_map50,no_helmet_map50,no_goggle_map50,no_gloves_map50,no_boots_map50
+cbam_violation_oversample,ok,architecture_plus_imbalance,/kaggle/working/ppe_yolo_experiments/runs/cbam_violation_oversample/weights/best.pt,0.6422142162078454,0.3432614142977915,0.768179627657424,0.602649808751509,3.149820736521147,0.5528657395208141,0.7149493915312513,0.7708407919107687,0.7248625436181337,0.0008102310231023102

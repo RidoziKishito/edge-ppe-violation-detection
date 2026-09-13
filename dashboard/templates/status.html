@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}System Status | Trinity{% endblock %}
+
+{% block content %}
+<header class="page-header">
+  <div>
+    <p class="eyebrow">System Status</p>
+    <h1>Edge Node Health</h1>
+  </div>
+</header>
+
+<section class="status-layout">
+  <div class="panel">
+    <div class="section-header"><h2>Edge Nodes</h2></div>
+    <div class="node-grid">
+      {% for node in nodes %}
+      <div class="node-card">
+        <div class="node-card-header">
+          <div>
+            <strong>{{ node.camera_id }}</strong>
+            <span>{{ node.location }}</span>
+          </div>
+          <span class="status-dot {{ node.status }}">{{ node.status }}</span>
+        </div>
+        <div class="node-metrics">
+          <span>FPS <strong>{{ node.fps }}</strong></span>
+          <span>Last heartbeat <strong>{{ node.heartbeat }}</strong></span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="section-header"><h2>Model Info</h2></div>
+    <dl class="detail-list">
+      <div><dt>Model name</dt><dd>baseline_yolo26n</dd></div>
+      <div><dt>Format</dt><dd>ONNX FP32</dd></div>
+      <div><dt>Inference speed</dt><dd>131 FPS</dd></div>
+      <div><dt>Temporal smoothing</dt><dd>N=5 consecutive frames</dd></div>
+    </dl>
+  </div>
+
+  <div class="panel wide">
+    <div class="metrics-banner">
+      <div>
+        <span class="metric-label">Bandwidth saving</span>
+        <strong>99.93%</strong>
+        <small>vs raw stream</small>
+      </div>
+      <div>
+        <span class="metric-label">False alarm reduction</span>
+        <strong>94.6%</strong>
+        <small>with temporal smoothing</small>
+      </div>
+      <div>
+        <span class="metric-label">Alert latency</span>
+        <strong>&lt;167ms</strong>
+        <small>edge event pipeline</small>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

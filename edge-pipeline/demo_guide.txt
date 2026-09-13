@@ -1,0 +1,71 @@
+TRINITY DEMO WORKFLOW
+
+Run commands from the project root.
+
+Demo media is organized under:
+
+  edge-pipeline/media/videos/input/       source demo videos
+  edge-pipeline/media/videos/processed/   previous annotated outputs
+  edge-pipeline/media/images/previews/    saved preview images
+
+Bare video filenames are resolved automatically from the input folder.
+
+1. FIRST RUN FOR A VIDEO
+
+  python demo.py --source demo_video3.mp4
+
+If the video has no saved zone profile, the launcher extracts a temporary
+preview frame and opens the zone editor. Draw the zones and click Save.
+The profile is stored at:
+
+  edge-pipeline/configs/zones/demo_video3.json
+
+The launcher then:
+- creates an isolated run folder under edge-pipeline/logs/runs/
+- marks that run as active for the dashboard
+- starts the dashboard if it is not already running
+- opens http://127.0.0.1:5000
+- runs the inference pipeline
+
+2. LATER RUNS
+
+  python demo.py --source demo_video3.mp4
+
+The saved zone profile is reused automatically. The dashboard can remain
+running between demos and will switch to the newly active run.
+
+The demo launcher runs inference every third frame by default and reuses the
+latest detections between inference frames. Confirmed alerts are logged once
+per zone, with a 5-second cooldown after a NORMAL reset.
+The dashboard Site Feed uses an MJPEG stream at 20 FPS by default, with
+live_frame.jpg still saved in the run folder as the completed-run fallback.
+
+3. CHANGE ZONES
+
+  python demo.py --source demo_video3.mp4 --configure-zones
+
+4. QUICK HEADLESS TEST
+
+First configure zones once, then run:
+
+  python demo.py --source demo_video3.mp4 --headless --max-frames 300
+
+Useful options:
+- --camera-id CAM-01
+- --conf 0.4
+- --smooth 5
+- --inference-interval 3
+- --alert-cooldown 5
+- --live-preview-fps 20
+- --no-browser
+- --no-dashboard
+
+Each run folder contains:
+- run.json: source, model, settings, timestamps, and completion status
+- events.csv: alert events for that run
+- snapshots/: captured violation evidence
+- output.mp4: annotated result video
+
+To add a new demo, place it in edge-pipeline/media/videos/input/ and run:
+
+  python demo.py --source new_video.mp4

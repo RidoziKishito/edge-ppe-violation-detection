@@ -1,0 +1,6 @@
+{
+  "experiment": "baseline_violation_aug",
+  "source": "/kaggle/working/ppe_yolo_experiments/runs/baseline_violation_aug/weights/best.onnx",
+  "exported": "/kaggle/working/exports/baseline_violation_aug_best.onnx",
+  "size_mb": 9.358514785766602
+}

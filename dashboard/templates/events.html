@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}Event Log | Trinity{% endblock %}
+
+{% block content %}
+<header class="page-header">
+  <div>
+    <p class="eyebrow">Event Log</p>
+    <h1>Recorded PPE Alerts</h1>
+  </div>
+  <button class="primary-button" type="button" id="export-csv">Export CSV</button>
+</header>
+
+<section class="panel">
+  <div class="filters">
+    <label>Start date <input type="date" id="filter-start"></label>
+    <label>End date <input type="date" id="filter-end"></label>
+    <label>Camera <input type="text" id="filter-camera" placeholder="CAM-01"></label>
+    <label>Zone <input type="text" id="filter-zone" placeholder="Restricted"></label>
+    <label>Alert level
+      <select id="filter-level">
+        <option value="">All</option>
+        <option value="WARNING">WARNING</option>
+        <option value="CRITICAL">CRITICAL</option>
+        <option value="NORMAL">NORMAL</option>
+      </select>
+    </label>
+    <label>PPE type
+      <select id="filter-ppe">
+        <option value="">All</option>
+        {% for ppe in ppe_types %}
+        <option value="{{ ppe }}">{{ ppe }}</option>
+        {% endfor %}
+      </select>
+    </label>
+  </div>
+
+  <div class="table-wrap">
+    <table class="data-table" id="events-table">
+      <thead>
+        <tr>
+          <th><button class="sort-button" data-sort="timestamp">Timestamp</button></th>
+          <th>Camera</th>
+          <th>Zone</th>
+          <th><button class="sort-button" data-sort="alert_level">Alert Level</button></th>
+          <th>Missing PPE</th>
+          <th><button class="sort-button" data-sort="confidence">Confidence</button></th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="pagination-bar">
+    <span id="page-summary">0 events</span>
+    <div>
+      <button class="text-button" type="button" id="prev-page">Previous</button>
+      <button class="text-button" type="button" id="next-page">Next</button>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let allEvents = [];
+let filteredEvents = [];
+let page = 1;
+let sortKey = "timestamp";
+let sortDirection = "desc";
+const pageSize = 20;
+const tbody = document.querySelector("#events-table tbody");
+const pageSummary = document.getElementById("page-summary");
+
+function formatDate(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+}
+
+function renderBadge(level) {
+  return `<span class="badge badge-${level.toLowerCase()}">${level}</span>`;
+}
+
+function renderTags(items) {
+  return items.length ? items.map(item => `<span class="tag">${item}</span>`).join("") : '<span class="muted">None</span>';
+}
+
+function getFilters() {
+  return {
+    start: document.getElementById("filter-start").value,
+    end: document.getElementById("filter-end").value,
+    camera: document.getElementById("filter-camera").value.toLowerCase(),
+    zone: document.getElementById("filter-zone").value.toLowerCase(),
+    level: document.getElementById("filter-level").value,
+    ppe: document.getElementById("filter-ppe").value
+  };
+}
+
+function passesFilters(event, filters) {
+  const eventDate = event.timestamp.slice(0, 10);
+  if (filters.start && eventDate < filters.start) return false;
+  if (filters.end && eventDate > filters.end) return false;
+  if (filters.camera && !event.camera_id.toLowerCase().includes(filters.camera)) return false;
+  if (filters.zone && !event.zone.toLowerCase().includes(filters.zone)) return false;
+  if (filters.level && event.alert_level !== filters.level) return false;
+  if (filters.ppe && !event.missing_ppe.includes(filters.ppe)) return false;
+  return true;
+}
+
+function sortEvents(events) {
+  const direction = sortDirection === "asc" ? 1 : -1;
+  return [...events].sort((a, b) => {
+    if (sortKey === "confidence") return (a.confidence - b.confidence) * direction;
+    if (sortKey === "timestamp") return (new Date(a.timestamp) - new Date(b.timestamp)) * direction;
+    return a[sortKey].localeCompare(b[sortKey]) * direction;
+  });
+}
+
+function applyFilters() {
+  filteredEvents = sortEvents(allEvents.filter(event => passesFilters(event, getFilters())));
+  page = 1;
+  renderTable();
+}
+
+function renderTable() {
+  const start = (page - 1) * pageSize;
+  const visible = filteredEvents.slice(start, start + pageSize);
+  tbody.innerHTML = "";
+  visible.forEach(event => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${formatDate(event.timestamp)}</td>
+      <td>${event.camera_id}</td>
+      <td>${event.zone}</td>
+      <td>${renderBadge(event.alert_level)}</td>
+      <td class="tag-list">${renderTags(event.missing_ppe)}</td>
+      <td>${Math.round(event.confidence * 100)}%</td>
+    `;
+    tbody.appendChild(row);
+  });
+  const totalPages = Math.max(1, Math.ceil(filteredEvents.length / pageSize));
+  pageSummary.textContent = `${filteredEvents.length} events | Page ${page} of ${totalPages}`;
+  document.getElementById("prev-page").disabled = page === 1;
+  document.getElementById("next-page").disabled = page >= totalPages;
+}
+
+function exportCsv() {
+  const header = ["timestamp", "camera_id", "zone", "alert_level", "missing_ppe", "confidence"];
+  const rows = filteredEvents.map(event => [
+    event.timestamp,
+    event.camera_id,
+    event.zone,
+    event.alert_level,
+    event.missing_ppe.join("|"),
+    event.confidence
+  ]);
+  const csv = [header, ...rows].map(row => row.map(value => `"${String(value).replaceAll('"', '""')}"`).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "trinity_events.csv";
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+async function initEvents() {
+  const response = await fetch("/api/events");
+  const payload = await response.json();
+  allEvents = payload.events;
+  applyFilters();
+}
+
+document.querySelectorAll(".filters input, .filters select").forEach(element => {
+  element.addEventListener("input", applyFilters);
+});
+document.querySelectorAll(".sort-button").forEach(button => {
+  button.addEventListener("click", () => {
+    const nextKey = button.dataset.sort;
+    sortDirection = sortKey === nextKey && sortDirection === "desc" ? "asc" : "desc";
+    sortKey = nextKey;
+    filteredEvents = sortEvents(filteredEvents);
+    renderTable();
+  });
+});
+document.getElementById("prev-page").addEventListener("click", () => {
+  page = Math.max(1, page - 1);
+  renderTable();
+});
+document.getElementById("next-page").addEventListener("click", () => {
+  const totalPages = Math.ceil(filteredEvents.length / pageSize);
+  page = Math.min(totalPages, page + 1);
+  renderTable();
+});
+document.getElementById("export-csv").addEventListener("click", exportCsv);
+
+initEvents();
+</script>
+{% endblock %}

@@ -1,0 +1,16 @@
+{
+  "experiment": "ghost_violation_oversample",
+  "status": "ok",
+  "target": "architecture_plus_imbalance",
+  "weights": "/kaggle/working/ppe_yolo_experiments/runs/ghost_violation_oversample/weights/best.pt",
+  "map50": 0.6294112709487621,
+  "map50_95": 0.3398678807696139,
+  "precision": 0.7455353536659295,
+  "recall": 0.6047723200796689,
+  "inference_ms": 3.2094833589020055,
+  "mean_violation_map50": 0.5560534683632081,
+  "no_helmet_map50": 0.7260421013595196,
+  "no_goggle_map50": 0.7773293220907034,
+  "no_gloves_map50": 0.7161225344670672,
+  "no_boots_map50": 0.0047199155355421955
+}

@@ -1,0 +1,502 @@
+[
+  {
+    "timestamp": "2026-06-13T14:08:12",
+    "camera_id": "CAM-04",
+    "zone": "Machinery Area",
+    "alert_level": "CRITICAL",
+    "missing_ppe": ["no_helmet"],
+    "confidence": 0.91,
+    "frame_path": "logs/snapshots/demo_frame_0001.jpg",
+    "worker_id_box": [482, 112, 691, 462]
+  },
+  {
+    "timestamp": "2026-06-13T13:41:29",
+    "camera_id": "CAM-02",
+    "zone": "Working at Height",
+    "alert_level": "CRITICAL",
+    "missing_ppe": ["no_goggle"],
+    "confidence": 0.88,
+    "frame_path": "logs/snapshots/demo_frame_0002.jpg",
+    "worker_id_box": [214, 95, 402, 438]
+  },
+  {
+    "timestamp": "2026-06-13T13:17:46",
+    "camera_id": "CAM-03",
+    "zone": "Ground Level General",
+    "alert_level": "WARNING",
+    "missing_ppe": ["no_gloves"],
+    "confidence": 0.76,
+    "frame_path": "logs/snapshots/demo_frame_0003.jpg",
+    "worker_id_box": [608, 128, 796, 501]
+  },
+  {
+    "timestamp": "2026-06-13T12:52:03",
+    "camera_id": "CAM-01",
+    "zone": "Ground Level General",
+    "alert_level": "WARNING",
+    "missing_ppe": ["no_boots"],
+    "confidence": 0.72,
+    "frame_path": "logs/snapshots/demo_frame_0004.jpg",
+    "worker_id_box": [132, 118, 306, 486]
+  },
+  {
+    "timestamp": "2026-06-13T12:21:34",
+    "camera_id": "CAM-04",
+    "zone": "Restricted Zone A",
+    "alert_level": "CRITICAL",
+    "missing_ppe": ["no_helmet"],
+    "confidence": 0.93,
+    "frame_path": "logs/snapshots/demo_frame_0005.jpg",
+    "worker_id_box": [714, 107, 914, 475]
+  },
+  {
+    "timestamp": "2026-06-13T11:58:10",
+    "camera_id": "CAM-02",
+    "zone": "Working at Height",
+    "alert_level": "WARNING",
+    "missing_ppe": ["no_gloves"],
+    "confidence": 0.81,
+    "frame_path": "logs/snapshots/demo_frame_0006.jpg",
+    "worker_id_box": [356, 84, 541, 421]
+  },
+  {
+    "timestamp": "2026-06-13T11:24:57",
+    "camera_id": "CAM-01",
+    "zone": "Ground Level General",
+    "alert_level": "WARNING",
+    "missing_ppe": ["no_goggle"],
+    "confidence": 0.79,
+    "frame_path": "logs/snapshots/demo_frame_0007.jpg",
+    "worker_id_box": [92, 141, 281, 508]
+  },
+  {
+    "timestamp": "2026-06-13T10:49:18",
+    "camera_id": "CAM-04",
+    "zone": "Machinery Area",
+    "alert_level": "CRITICAL",
+    "missing_ppe": ["no_helmet"],
+    "confidence": 0.9,
+    "frame_path": "logs/snapshots/demo_frame_0008.jpg",
+    "worker_id_box": [530, 102, 732, 469]
+  },
+  {
+    "timestamp": "2026-06-13T10:16:43",
+    "camera_id": "CAM-03",
+    "zone": "Ground Level General",
+    "alert_level": "WARNING",
+    "missing_ppe": ["no_helmet"],
+    "confidence": 0.84,
+    "frame_path": "logs/snapshots/demo_frame_0009.jpg",
+    "worker_id_box": [438, 132, 611, 497]
+  },
+  {
+    "timestamp": "2026-06-13T09:55:26",
+    "camera_id": "CAM-02",
+    "zone": "Working at Height",
+    "alert_level": "CRITICAL",
+    "missing_ppe": ["no_goggle"],
+    "confidence": 0.86,
+    "frame_path": "logs/snapshots/demo_frame_0010.jpg",
+    "worker_id_box": [288, 74, 477, 416]
+  },
+  {
+    "timestamp": "2026-06-13T09:22:01",
+    "camera_id": "CAM-01",
+    "zone": "Ground Level General",
+    "alert_level": "WARNING",
+    "missing_ppe": ["no_gloves"],
+    "confidence": 0.73,
+    "frame_path": "logs/snapshots/demo_frame_0011.jpg",
+    "worker_id_box": [121, 126, 302, 489]
+  },
+  {
+    "timestamp": "2026-06-13T08:57:39",
+    "camera_id": "CAM-04",
+    "zone": "Restricted Zone A",
+    "alert_level": "CRITICAL",
+    "missing_ppe": ["no_helmet"],
+    "confidence": 0.94,
+    "frame_path": "logs/snapshots/demo_frame_0012.jpg",
+    "worker_id_box": [655, 90, 860, 458]
+  },
+  {
+    "timestamp": "2026-06-13T08:34:12",
+    "camera_id": "CAM-01",
+    "zone": "Restricted Zone A",
+    "alert_level": "CRITICAL",
+    "missing_ppe": ["no_helmet"],
+    "confidence": 0.87,
+    "frame_path": "logs/snapshots/demo_frame_0013.jpg",
+    "worker_id_box": [120, 80, 310, 420]
+  },
+  {
+    "timestamp": "2026-06-13T08:06:51",
+    "camera_id": "CAM-03",
+    "zone": "Ground Level General",
+    "alert_level": "WARNING",
+    "missing_ppe": ["no_boots"],
+    "confidence": 0.7,
+    "frame_path": "logs/snapshots/demo_frame_0014.jpg",
+    "worker_id_box": [500, 149, 681, 520]
+  },
+  {
+    "timestamp": "2026-06-13T07:43:07",
+    "camera_id": "CAM-02",
+    "zone": "Working at Height",
+    "alert_level": "WARNING",
+    "missing_ppe": ["no_goggle"],
+    "confidence": 0.69,
+    "frame_path": "logs/snapshots/demo_frame_0015.jpg",
+    "worker_id_box": [334, 101, 518, 440]
+  },
+  {
+    "timestamp": "2026-06-13T07:11:28",
+    "camera_id": "CAM-04",
+    "zone": "Machinery Area",
+    "alert_level": "CRITICAL",
+    "missing_ppe": ["no_helmet"],
+    "confidence": 0.92,
+    "frame_path": "logs/snapshots/demo_frame_0016.jpg",
+    "worker_id_box": [770, 118, 970, 487]
+  },
+  {
+    "timestamp": "2026-06-13T06:48:33",
+    "camera_id": "CAM-01",
+    "zone": "Ground Level General",
+    "alert_level": "WARNING",
+    "missing_ppe": ["no_goggle"],
+    "confidence": 0.78,
+    "frame_path": "logs/snapshots/demo_frame_0017.jpg",
+    "worker_id_box": [185, 130, 363, 505]
+  },
+  {
+    "timestamp": "2026-06-13T06:22:14",
+    "camera_id": "CAM-03",
+    "zone": "Ground Level General",
+    "alert_level": "WARNING",
+    "missing_ppe": ["no_gloves"],
+    "confidence": 0.75,
+    "frame_path": "logs/snapshots/demo_frame_0018.jpg",
+    "worker_id_box": [426, 151, 618, 512]
+  },
+  {
+    "timestamp": "2026-06-13T05:56:49",
+    "camera_id": "CAM-02",
+    "zone": "Working at Height",
+    "alert_level": "CRITICAL",
+    "missing_ppe": ["no_helmet"],
+    "confidence": 0.89,
+    "frame_path": "logs/snapshots/demo_frame_0019.jpg",
+    "worker_id_box": [247, 88, 435, 425]
+  },
+  {
+    "timestamp": "2026-06-13T05:31:05",
+    "camera_id": "CAM-04",
+    "zone": "Restricted Zone A",
+    "alert_level": "CRITICAL",
+    "missing_ppe": ["no_goggle"],
+    "confidence": 0.85,
+    "frame_path": "logs/snapshots/demo_frame_0020.jpg",
+    "worker_id_box": [612, 91, 809, 462]
+  },
+  {
+    "timestamp": "2026-06-13T04:59:41",
+    "camera_id": "CAM-03",
+    "zone": "Ground Level General",
+    "alert_level": "WARNING",
+    "missing_ppe": ["no_helmet"],
+    "confidence": 0.82,
+    "frame_path": "logs/snapshots/demo_frame_0021.jpg",
+    "worker_id_box": [388, 140, 574, 510]
+  },
+  {
+    "timestamp": "2026-06-13T04:28:16",
+    "camera_id": "CAM-01",
+    "zone": "Ground Level General",
+    "alert_level": "WARNING",
+    "missing_ppe": ["no_goggle"],
+    "confidence": 0.77,
+    "frame_path": "logs/snapshots/demo_frame_0022.jpg",
+    "worker_id_box": [160, 121, 344, 492]
+  },
+  {
+    "timestamp": "2026-06-13T03:57:02",
+    "camera_id": "CAM-02",
+    "zone": "Working at Height",
+    "alert_level": "WARNING",
+    "missing_ppe": ["no_gloves"],
+    "confidence": 0.74,
+    "frame_path": "logs/snapshots/demo_frame_0023.jpg",
+    "worker_id_box": [301, 100, 486, 438]
+  },
+  {
+    "timestamp": "2026-06-13T03:24:54",
+    "camera_id": "CAM-04",
+    "zone": "Machinery Area",
+    "alert_level": "CRITICAL",
+    "missing_ppe": ["no_helmet"],
+    "confidence": 0.91,
+    "frame_path": "logs/snapshots/demo_frame_0024.jpg",
+    "worker_id_box": [726, 116, 929, 484]
+  },
+  {
+    "timestamp": "2026-06-13T02:52:37",
+    "camera_id": "CAM-03",
+    "zone": "Ground Level General",
+    "alert_level": "WARNING",
+    "missing_ppe": ["no_boots"],
+    "confidence": 0.71,
+    "frame_path": "logs/snapshots/demo_frame_0025.jpg",
+    "worker_id_box": [459, 154, 645, 523]
+  },
+  {
+    "timestamp": "2026-06-13T02:18:09",
+    "camera_id": "CAM-01",
+    "zone": "Ground Level General",
+    "alert_level": "WARNING",
+    "missing_ppe": ["no_helmet"],
+    "confidence": 0.83,
+    "frame_path": "logs/snapshots/demo_frame_0026.jpg",
+    "worker_id_box": [118, 132, 295, 501]
+  },
+  {
+    "timestamp": "2026-06-13T01:47:31",
+    "camera_id": "CAM-04",
+    "zone": "Restricted Zone A",
+    "alert_level": "CRITICAL",
+    "missing_ppe": ["no_helmet"],
+    "confidence": 0.95,
+    "frame_path": "logs/snapshots/demo_frame_0027.jpg",
+    "worker_id_box": [698, 88, 900, 463]
+  },
+  {
+    "timestamp": "2026-06-13T01:19:56",
+    "camera_id": "CAM-02",
+    "zone": "Working at Height",
+    "alert_level": "WARNING",
+    "missing_ppe": ["no_goggle"],
+    "confidence": 0.8,
+    "frame_path": "logs/snapshots/demo_frame_0028.jpg",
+    "worker_id_box": [262, 92, 450, 426]
+  },
+  {
+    "timestamp": "2026-06-13T00:43:18",
+    "camera_id": "CAM-03",
+    "zone": "Ground Level General",
+    "alert_level": "WARNING",
+    "missing_ppe": ["no_gloves"],
+    "confidence": 0.72,
+    "frame_path": "logs/snapshots/demo_frame_0029.jpg",
+    "worker_id_box": [420, 144, 600, 512]
+  },
+  {
+    "timestamp": "2026-06-13T00:08:44",
+    "camera_id": "CAM-04",
+    "zone": "Machinery Area",
+    "alert_level": "CRITICAL",
+    "missing_ppe": ["no_goggle"],
+    "confidence": 0.87,
+    "frame_path": "logs/snapshots/demo_frame_0030.jpg",
+    "worker_id_box": [738, 119, 944, 488]
+  },
+  {
+    "timestamp": "2026-06-12T23:36:27",
+    "camera_id": "CAM-01",
+    "zone": "Ground Level General",
+    "alert_level": "WARNING",
+    "missing_ppe": ["no_helmet"],
+    "confidence": 0.82,
+    "frame_path": "logs/snapshots/demo_frame_0031.jpg",
+    "worker_id_box": [140, 122, 319, 493]
+  },
+  {
+    "timestamp": "2026-06-12T23:04:19",
+    "camera_id": "CAM-02",
+    "zone": "Working at Height",
+    "alert_level": "CRITICAL",
+    "missing_ppe": ["no_helmet"],
+    "confidence": 0.9,
+    "frame_path": "logs/snapshots/demo_frame_0032.jpg",
+    "worker_id_box": [284, 82, 471, 418]
+  },
+  {
+    "timestamp": "2026-06-12T22:29:53",
+    "camera_id": "CAM-03",
+    "zone": "Ground Level General",
+    "alert_level": "WARNING",
+    "missing_ppe": ["no_goggle"],
+    "confidence": 0.77,
+    "frame_path": "logs/snapshots/demo_frame_0033.jpg",
+    "worker_id_box": [398, 146, 579, 520]
+  },
+  {
+    "timestamp": "2026-06-12T21:58:08",
+    "camera_id": "CAM-04",
+    "zone": "Restricted Zone A",
+    "alert_level": "CRITICAL",
+    "missing_ppe": ["no_helmet"],
+    "confidence": 0.94,
+    "frame_path": "logs/snapshots/demo_frame_0034.jpg",
+    "worker_id_box": [710, 94, 916, 471]
+  },
+  {
+    "timestamp": "2026-06-12T21:21:36",
+    "camera_id": "CAM-01",
+    "zone": "Ground Level General",
+    "alert_level": "WARNING",
+    "missing_ppe": ["no_gloves"],
+    "confidence": 0.73,
+    "frame_path": "logs/snapshots/demo_frame_0035.jpg",
+    "worker_id_box": [174, 128, 352, 497]
+  },
+  {
+    "timestamp": "2026-06-12T20:49:42",
+    "camera_id": "CAM-02",
+    "zone": "Working at Height",
+    "alert_level": "WARNING",
+    "missing_ppe": ["no_boots"],
+    "confidence": 0.7,
+    "frame_path": "logs/snapshots/demo_frame_0036.jpg",
+    "worker_id_box": [316, 89, 501, 430]
+  },
+  {
+    "timestamp": "2026-06-12T20:13:25",
+    "camera_id": "CAM-04",
+    "zone": "Machinery Area",
+    "alert_level": "CRITICAL",
+    "missing_ppe": ["no_helmet"],
+    "confidence": 0.92,
+    "frame_path": "logs/snapshots/demo_frame_0037.jpg",
+    "worker_id_box": [746, 113, 949, 482]
+  },
+  {
+    "timestamp": "2026-06-12T19:44:03",
+    "camera_id": "CAM-03",
+    "zone": "Ground Level General",
+    "alert_level": "WARNING",
+    "missing_ppe": ["no_goggle"],
+    "confidence": 0.79,
+    "frame_path": "logs/snapshots/demo_frame_0038.jpg",
+    "worker_id_box": [456, 142, 641, 518]
+  },
+  {
+    "timestamp": "2026-06-12T19:08:54",
+    "camera_id": "CAM-01",
+    "zone": "Ground Level General",
+    "alert_level": "WARNING",
+    "missing_ppe": ["no_helmet"],
+    "confidence": 0.84,
+    "frame_path": "logs/snapshots/demo_frame_0039.jpg",
+    "worker_id_box": [104, 125, 287, 496]
+  },
+  {
+    "timestamp": "2026-06-12T18:35:17",
+    "camera_id": "CAM-04",
+    "zone": "Restricted Zone A",
+    "alert_level": "CRITICAL",
+    "missing_ppe": ["no_goggle"],
+    "confidence": 0.88,
+    "frame_path": "logs/snapshots/demo_frame_0040.jpg",
+    "worker_id_box": [688, 101, 894, 477]
+  },
+  {
+    "timestamp": "2026-06-12T18:02:44",
+    "camera_id": "CAM-02",
+    "zone": "Working at Height",
+    "alert_level": "WARNING",
+    "missing_ppe": ["no_gloves"],
+    "confidence": 0.76,
+    "frame_path": "logs/snapshots/demo_frame_0041.jpg",
+    "worker_id_box": [298, 96, 489, 434]
+  },
+  {
+    "timestamp": "2026-06-12T17:31:29",
+    "camera_id": "CAM-03",
+    "zone": "Ground Level General",
+    "alert_level": "WARNING",
+    "missing_ppe": ["no_helmet"],
+    "confidence": 0.81,
+    "frame_path": "logs/snapshots/demo_frame_0042.jpg",
+    "worker_id_box": [430, 150, 615, 524]
+  },
+  {
+    "timestamp": "2026-06-12T17:04:10",
+    "camera_id": "CAM-04",
+    "zone": "Machinery Area",
+    "alert_level": "CRITICAL",
+    "missing_ppe": ["no_helmet"],
+    "confidence": 0.93,
+    "frame_path": "logs/snapshots/demo_frame_0043.jpg",
+    "worker_id_box": [760, 112, 968, 485]
+  },
+  {
+    "timestamp": "2026-06-12T16:39:52",
+    "camera_id": "CAM-01",
+    "zone": "Ground Level General",
+    "alert_level": "WARNING",
+    "missing_ppe": ["no_goggle"],
+    "confidence": 0.78,
+    "frame_path": "logs/snapshots/demo_frame_0044.jpg",
+    "worker_id_box": [166, 123, 348, 501]
+  },
+  {
+    "timestamp": "2026-06-12T16:12:33",
+    "camera_id": "CAM-02",
+    "zone": "Working at Height",
+    "alert_level": "WARNING",
+    "missing_ppe": ["no_goggle"],
+    "confidence": 0.68,
+    "frame_path": "logs/snapshots/demo_frame_0045.jpg",
+    "worker_id_box": [310, 91, 493, 428]
+  },
+  {
+    "timestamp": "2026-06-12T15:47:28",
+    "camera_id": "CAM-04",
+    "zone": "Restricted Zone A",
+    "alert_level": "CRITICAL",
+    "missing_ppe": ["no_helmet"],
+    "confidence": 0.95,
+    "frame_path": "logs/snapshots/demo_frame_0046.jpg",
+    "worker_id_box": [704, 99, 911, 474]
+  },
+  {
+    "timestamp": "2026-06-12T15:18:06",
+    "camera_id": "CAM-03",
+    "zone": "Ground Level General",
+    "alert_level": "WARNING",
+    "missing_ppe": ["no_gloves"],
+    "confidence": 0.75,
+    "frame_path": "logs/snapshots/demo_frame_0047.jpg",
+    "worker_id_box": [474, 147, 657, 521]
+  },
+  {
+    "timestamp": "2026-06-12T14:52:49",
+    "camera_id": "CAM-01",
+    "zone": "Ground Level General",
+    "alert_level": "WARNING",
+    "missing_ppe": ["no_boots"],
+    "confidence": 0.71,
+    "frame_path": "logs/snapshots/demo_frame_0048.jpg",
+    "worker_id_box": [126, 130, 310, 504]
+  },
+  {
+    "timestamp": "2026-06-12T14:23:31",
+    "camera_id": "CAM-02",
+    "zone": "Working at Height",
+    "alert_level": "CRITICAL",
+    "missing_ppe": ["no_goggle"],
+    "confidence": 0.87,
+    "frame_path": "logs/snapshots/demo_frame_0049.jpg",
+    "worker_id_box": [276, 86, 465, 423]
+  },
+  {
+    "timestamp": "2026-06-12T14:01:14",
+    "camera_id": "CAM-03",
+    "zone": "Ground Level General",
+    "alert_level": "WARNING",
+    "missing_ppe": ["no_helmet"],
+    "confidence": 0.83,
+    "frame_path": "logs/snapshots/demo_frame_0050.jpg",
+    "worker_id_box": [444, 151, 628, 525]
+  }
+]

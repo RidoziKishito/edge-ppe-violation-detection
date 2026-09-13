@@ -1,0 +1,18 @@
+[
+  {
+    "experiment":"baseline_yolo26n",
+    "status":"ok",
+    "target":"baseline",
+    "weights":"\/kaggle\/working\/ppe_yolo_experiments\/runs\/baseline_yolo26n\/weights\/best.pt",
+    "map50":0.6765233742,
+    "map50_95":0.3745315698,
+    "precision":0.7834876375,
+    "recall":0.6285396898,
+    "inference_ms":2.9307950973,
+    "mean_violation_map50":0.5802990125,
+    "no_helmet_map50":0.7893357345,
+    "no_goggle_map50":0.7857722996,
+    "no_gloves_map50":0.7340974413,
+    "no_boots_map50":0.0119905745
+  }
+]

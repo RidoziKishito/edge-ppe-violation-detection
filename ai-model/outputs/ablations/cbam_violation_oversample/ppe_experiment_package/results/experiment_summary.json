@@ -1,0 +1,18 @@
+[
+  {
+    "experiment":"cbam_violation_oversample",
+    "status":"ok",
+    "target":"architecture_plus_imbalance",
+    "weights":"\/kaggle\/working\/ppe_yolo_experiments\/runs\/cbam_violation_oversample\/weights\/best.pt",
+    "map50":0.6422142162,
+    "map50_95":0.3432614143,
+    "precision":0.7681796277,
+    "recall":0.6026498088,
+    "inference_ms":3.1498207365,
+    "mean_violation_map50":0.5528657395,
+    "no_helmet_map50":0.7149493915,
+    "no_goggle_map50":0.7708407919,
+    "no_gloves_map50":0.7248625436,
+    "no_boots_map50":0.000810231
+  }
+]

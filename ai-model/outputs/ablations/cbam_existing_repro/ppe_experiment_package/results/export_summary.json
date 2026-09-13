@@ -1,0 +1,6 @@
+{
+  "experiment": "cbam_existing_repro",
+  "source": "/kaggle/working/ppe_yolo_experiments/runs/cbam_existing_repro/weights/best.onnx",
+  "exported": "/kaggle/working/exports/cbam_existing_repro_best.onnx",
+  "size_mb": 9.766956329345703
+}

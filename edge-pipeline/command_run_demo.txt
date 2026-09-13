@@ -1,0 +1,13 @@
+python ..\demo.py --source demo_video3.mp4
+
+# Explicit performance and deduplication settings:
+python ..\demo.py --source demo_video3.mp4 --inference-interval 3 --alert-cooldown 5 --live-preview-fps 20
+
+# Force zone editing:
+python ..\demo.py --source demo_video3.mp4 --configure-zones
+
+# Fast headless test after zones have been configured:
+python ..\demo.py --source demo_video3.mp4 --headless --max-frames 300
+
+# Add new videos to:
+# media\videos\input\

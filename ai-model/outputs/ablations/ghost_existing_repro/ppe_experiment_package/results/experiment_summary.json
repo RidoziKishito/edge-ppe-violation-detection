@@ -1,0 +1,18 @@
+[
+  {
+    "experiment":"ghost_existing_repro",
+    "status":"ok",
+    "target":"architecture_efficiency",
+    "weights":"\/kaggle\/working\/ppe_yolo_experiments\/runs\/ghost_existing_repro\/weights\/best.pt",
+    "map50":0.6129386982,
+    "map50_95":0.327333001,
+    "precision":0.7496417726,
+    "recall":0.5751247379,
+    "inference_ms":3.1088808107,
+    "mean_violation_map50":0.5184220047,
+    "no_helmet_map50":0.6881519209,
+    "no_goggle_map50":0.7163588574,
+    "no_gloves_map50":0.6688200977,
+    "no_boots_map50":0.0003571429
+  }
+]

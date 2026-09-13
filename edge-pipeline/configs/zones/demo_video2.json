@@ -1,0 +1,53 @@
+{
+  "source": "demo_video2.mp4",
+  "width": 3840,
+  "height": 2160,
+  "zones": [
+    {
+      "id": "Z01",
+      "name": "Danger Zone",
+      "type": "danger_zone",
+      "polygon": [
+        [
+          19,
+          34
+        ],
+        [
+          1344,
+          34
+        ],
+        [
+          1344,
+          2104
+        ],
+        [
+          19,
+          2104
+        ]
+      ]
+    },
+    {
+      "id": "Z02",
+      "name": "Warning Zone",
+      "type": "warning_zone",
+      "polygon": [
+        [
+          2568,
+          403
+        ],
+        [
+          3820,
+          403
+        ],
+        [
+          3820,
+          2146
+        ],
+        [
+          2568,
+          2146
+        ]
+      ]
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "experiment": "ghost_violation_oversample",
+  "source": "/kaggle/working/ppe_yolo_experiments/runs/ghost_violation_oversample/weights/best.onnx",
+  "exported": "/kaggle/working/exports/ghost_violation_oversample_best.onnx",
+  "size_mb": 8.123842239379883
+}

@@ -1,0 +1,6 @@
+{
+  "experiment": "ghost_existing_repro",
+  "source": "/kaggle/working/ppe_yolo_experiments/runs/ghost_existing_repro/weights/best.onnx",
+  "exported": "/kaggle/working/exports/ghost_existing_repro_best.onnx",
+  "size_mb": 8.123836517333984
+}

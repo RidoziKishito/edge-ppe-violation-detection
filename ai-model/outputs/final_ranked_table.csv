@@ -1,0 +1,8 @@
+"rank","experiment","mean_violation_map50","map50","infer_ms_per_img","efficiency_score","deploy_recommendation"
+"1","baseline_yolo26n","0.580299","0.676523","2.930795","0.198001","edge_deploy: best tie-broken choice, fastest top-tier violation model"
+"2","baseline_violation_oversample","0.585763","0.689717","3.17979","0.184214","paper/report: best absolute violation and overall mAP, slightly slower"
+"3","baseline_violation_aug","0.557159","0.670136","2.948737","0.188948","not recommended: augmentation underperforms baseline on violation mAP"
+"4","ghost_violation_oversample","0.556053","0.629411","3.209483","0.173253","ablation only: oversampling helps Ghost but remains below baseline"
+"5","cbam_violation_oversample","0.552866","0.642214","3.149821","0.175523","ablation only: oversampling helps CBAM but not enough for deployment"
+"6","cbam_existing_repro","0.524867","0.618224","3.146727","0.166798","not recommended: lower violation accuracy and slower than baseline"
+"7","ghost_existing_repro","0.518422","0.612939","3.108881","0.166755","not recommended: accuracy drop without measured speed gain"

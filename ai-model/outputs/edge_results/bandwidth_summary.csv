@@ -1,0 +1,13 @@
+scenario,time_period,data_mb,bandwidth_reduction_pct,notes
+Scenario A - continuous demo-video streaming,1 hour,1943.2771166032771,0.0,"weighted from demo_video3.mp4, demo_video4.mp4"
+Scenario A reference - continuous 1080p 2 Mbps streaming,1 hour,858.306884765625,55.83198724297799,reference bitrate only; not a reduction target
+Scenario B - edge logs + violation snapshots,1 hour,1.3469696044921875,99.93068566531332,"1.0 event/min, 500 B log, 15-30 KB snapshot"
+Scenario C - logs + blurred critical frames,1 hour,0.3930091857910156,99.97977595771425,"5.0 critical events/hour, 80 KB blurred JPEG"
+Scenario A - continuous demo-video streaming,8 hours,15546.216932826217,0.0,"weighted from demo_video3.mp4, demo_video4.mp4"
+Scenario A reference - continuous 1080p 2 Mbps streaming,8 hours,6866.455078125,55.83198724297799,reference bitrate only; not a reduction target
+Scenario B - edge logs + violation snapshots,8 hours,10.7757568359375,99.93068566531332,"1.0 event/min, 500 B log, 15-30 KB snapshot"
+Scenario C - logs + blurred critical frames,8 hours,3.144073486328125,99.97977595771425,"5.0 critical events/hour, 80 KB blurred JPEG"
+Scenario A - continuous demo-video streaming,30 days,1399159.5239543596,0.0,"weighted from demo_video3.mp4, demo_video4.mp4"
+Scenario A reference - continuous 1080p 2 Mbps streaming,30 days,617980.95703125,55.83198724297799,reference bitrate only; not a reduction target
+Scenario B - edge logs + violation snapshots,30 days,969.818115234375,99.93068566531332,"1.0 event/min, 500 B log, 15-30 KB snapshot"
+Scenario C - logs + blurred critical frames,30 days,282.96661376953125,99.97977595771425,"5.0 critical events/hour, 80 KB blurred JPEG"

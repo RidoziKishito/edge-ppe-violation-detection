@@ -1,0 +1,2 @@
+experiment,status,target,weights,map50,map50_95,precision,recall,inference_ms,mean_violation_map50,no_helmet_map50,no_goggle_map50,no_gloves_map50,no_boots_map50
+baseline_violation_aug,ok,imbalance_aug,/kaggle/working/ppe_yolo_experiments/runs/baseline_violation_aug/weights/best.pt,0.6701363368680995,0.3673326978810584,0.7926227755441431,0.6133722599989945,2.9487368043761766,0.5571589795135409,0.7751222380113332,0.7416447098929366,0.7067228046527168,0.0051461654971773655

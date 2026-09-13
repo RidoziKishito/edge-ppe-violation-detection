@@ -1,0 +1,6 @@
+{
+  "experiment": "baseline_yolo26n",
+  "source": "/kaggle/working/ppe_yolo_experiments/runs/baseline_yolo26n/weights/best.onnx",
+  "exported": "/kaggle/working/exports/baseline_yolo26n_best.onnx",
+  "size_mb": 9.358509063720703
+}

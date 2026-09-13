@@ -1,0 +1,27 @@
+# Modal-compatible dataset configuration for Construction-PPE
+# This file maps paths to the Modal container mount point at /dataset
+# Original data.yaml is preserved for local use
+
+# Dataset root inside Modal container (mounted via modal.Mount)
+path: /dataset
+
+# Train/val/test splits (relative to path)
+# Baseline training dataset: 30,148 train images, 143 initial val images, 141 test images.
+# Note: For extended multi-model benchmarking, val was stratified to 2,663 images via split_val.py.
+train: images/train   # 30,148 images
+val: images/val       # 143 images (initial Roboflow split; 2,663 images in extended eval)
+test: images/test     # 141 images (initial Roboflow split)
+
+# Classes (11 total)
+names:
+  0: helmet
+  1: gloves
+  2: vest
+  3: boots
+  4: goggles
+  5: none
+  6: Person
+  7: no_helmet
+  8: no_goggle
+  9: no_gloves
+  10: no_boots

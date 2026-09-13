@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics | Trinity{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<header class="page-header">
+  <div>
+    <p class="eyebrow">Analytics</p>
+    <h1>Safety Violation Trends</h1>
+  </div>
+</header>
+
+<section class="analytics-grid">
+  <div class="panel chart-panel">
+    <div class="section-header"><h2>Violations by Hour</h2></div>
+    <div class="chart-wrap"><canvas id="hourChart"></canvas></div>
+  </div>
+  <div class="panel chart-panel">
+    <div class="section-header"><h2>Violations by PPE Type</h2></div>
+    <div class="chart-wrap"><canvas id="ppeChart"></canvas></div>
+  </div>
+  <div class="panel chart-panel wide">
+    <div class="section-header"><h2>Alert Level Distribution — Last 7 Days</h2></div>
+    <div class="chart-wrap chart-wrap--wide"><canvas id="levelChart"></canvas></div>
+  </div>
+  <div class="panel wide">
+    <div class="section-header"><h2>Zone Violation Heatmap</h2></div>
+    <div class="table-wrap">
+      <table class="data-table" id="heatmap-table">
+        <thead>
+          <tr>
+            <th>Zone</th>
+            {% for ppe in ppe_types %}
+            <th>{{ ppe }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const ppeTypes = {{ ppe_types | tojson }};
+const warningColor = "#D97706";
+const criticalColor = "#DC2626";
+const slateColor = "#475569";
+
+function dayKey(date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function countByHour(events) {
+  const now = new Date();
+  const labels = [];
+  const counts = [];
+  for (let i = 23; i >= 0; i -= 1) {
+    const hour = new Date(now.getTime() - i * 60 * 60 * 1000);
+    labels.push(hour.getHours().toString().padStart(2, "0") + ":00");
+    counts.push(0);
+  }
+  events.forEach(event => {
+    const diffHours = Math.floor((now - new Date(event.timestamp)) / (60 * 60 * 1000));
+    if (diffHours >= 0 && diffHours < 24) {
+      counts[23 - diffHours] += 1;
+    }
+  });
+  return { labels, counts };
+}
+
+function countByPpe(events) {
+  return ppeTypes.map(type => events.filter(event => event.missing_ppe.includes(type)).length);
+}
+
+function countByLevel(events) {
+  const labels = [];
+  const warning = [];
+  const critical = [];
+  const now = new Date();
+  for (let i = 6; i >= 0; i -= 1) {
+    const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+    const key = dayKey(date);
+    labels.push(key.slice(5));
+    warning.push(events.filter(event => dayKey(new Date(event.timestamp)) === key && event.alert_level === "WARNING").length);
+    critical.push(events.filter(event => dayKey(new Date(event.timestamp)) === key && event.alert_level === "CRITICAL").length);
+  }
+  return { labels, warning, critical };
+}
+
+function renderHeatmap(events) {
+  const zones = [...new Set(events.map(event => event.zone))].sort();
+  const tbody = document.querySelector("#heatmap-table tbody");
+  tbody.innerHTML = "";
+  zones.forEach(zone => {
+    const row = document.createElement("tr");
+    const cells = ppeTypes.map(type => {
+      const count = events.filter(event => event.zone === zone && event.missing_ppe.includes(type)).length;
+      return `<td class="${count > 0 ? "heat-cell" : ""}">${count}</td>`;
+    }).join("");
+    row.innerHTML = `<th>${zone}</th>${cells}`;
+    tbody.appendChild(row);
+  });
+}
+
+function makeChart(id, config) {
+  const context = document.getElementById(id);
+  return new Chart(context, config);
+}
+
+async function initAnalytics() {
+  const response = await fetch("/api/events");
+  const payload = await response.json();
+  const events = payload.events;
+  const hourly = countByHour(events);
+  const levels = countByLevel(events);
+
+  makeChart("hourChart", {
+    type: "bar",
+    data: { labels: hourly.labels, datasets: [{ label: "Violations", data: hourly.counts, backgroundColor: slateColor }] },
+    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+  });
+
+  makeChart("ppeChart", {
+    type: "bar",
+    data: { labels: ppeTypes, datasets: [{ label: "Violations", data: countByPpe(events), backgroundColor: warningColor }] },
+    options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, scales: { x: { beginAtZero: true, ticks: { precision: 0 } } } }
+  });
+
+  makeChart("levelChart", {
+    type: "line",
+    data: {
+      labels: levels.labels,
+      datasets: [
+        { label: "WARNING", data: levels.warning, borderColor: warningColor, backgroundColor: "rgba(217, 119, 6, 0.18)", fill: true, tension: 0.25 },
+        { label: "CRITICAL", data: levels.critical, borderColor: criticalColor, backgroundColor: "rgba(220, 38, 38, 0.16)", fill: true, tension: 0.25 }
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false, scales: { y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } } } }
+  });
+
+  renderHeatmap(events);
+}
+
+initAnalytics();
+</script>
+{% endblock %}
