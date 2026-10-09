@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Zone Editor | Trinity{% endblock %}
+
+{% block content %}
+<header class="page-header">
+  <div class="page-heading">
+    <p class="eyebrow"><span class="signal-dot"></span> Spatial rules</p>
+    <h1>Detection zone editor</h1>
+    <p>Draw warning and danger polygons on the active source frame. Coordinates are saved at the source resolution.</p>
+  </div>
+  <div class="header-actions">
+    {% include "source_actions.html" %}
+    <button class="button button-secondary" type="button" id="reload-zones">Reload profile</button>
+    <button class="button button-primary" type="button" id="save-zones" disabled>Save asset</button>
+  </div>
+</header>
+{% include "monitor_tabs.html" %}
+
+<section class="zone-workspace">
+  <article class="panel zone-stage-panel">
+    <div class="panel-header">
+      <div>
+        <p class="panel-index">01 / Spatial canvas</p>
+        <h2 id="zone-source">Loading active source</h2>
+      </div>
+      <div class="panel-meta"><span id="zone-resolution">— × —</span><span class="state-chip" id="editor-state">Loading</span></div>
+    </div>
+
+    <div class="zone-toolbar" role="toolbar" aria-label="Polygon tools">
+      <button class="tool-button active" type="button" id="select-tool" aria-pressed="true">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 3 12 9-6 1-3 6z"/></svg>Select / move
+      </button>
+      <button class="tool-button" type="button" id="draw-tool" aria-pressed="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 17 3-11 10-2 3 13-8 4z"/></svg>Draw points
+      </button>
+      <span class="toolbar-separator"></span>
+      <button class="tool-button" type="button" id="undo-point" disabled>Undo point</button>
+      <button class="tool-button" type="button" id="finish-polygon" disabled>Finish polygon</button>
+      <label class="overlay-toggle"><input type="checkbox" id="overlay-toggle" checked><span>Show overlay</span></label>
+    </div>
+
+    <div class="zone-canvas-shell" id="zone-canvas-shell">
+      <canvas id="zone-canvas" tabindex="0" aria-label="Polygon zone drawing canvas"></canvas>
+      <div class="empty-state" id="zone-canvas-state"><span class="spinner"></span><strong>Preparing source frame</strong><p>The editor will preserve source-image coordinates when the canvas resizes.</p></div>
+      <div class="canvas-help" id="canvas-help">Select a zone, then choose Draw points.</div>
+    </div>
+    <div class="canvas-footer">
+      <span><kbd>Click</kbd> add or select</span><span><kbd>Drag</kbd> move vertex</span><span><kbd>Backspace</kbd> undo</span><span><kbd>Enter</kbd> finish</span><span><kbd>Esc</kbd> select mode</span>
+    </div>
+  </article>
+
+  <aside class="panel zone-inspector">
+    <div class="panel-header">
+      <div><p class="panel-index">02 / Zone profile</p><h2>Configured zones</h2></div>
+      <button class="icon-button" type="button" id="add-zone" aria-label="Add a new zone" title="Add zone">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+    </div>
+    <div class="zone-list" id="zone-list"></div>
+    <div class="asset-name-field"><label class="field">Asset name<input id="asset-name" type="text" maxlength="80" placeholder="e.g. Loading area — morning"></label><p>Save this video’s polygons as a reusable asset.</p></div>
+
+    <div class="inspector-form hidden" id="zone-form">
+      <div class="form-divider"><span>Selected zone</span></div>
+      <label class="field">Zone ID<input id="zone-id" type="text" maxlength="32" autocomplete="off"></label>
+      <label class="field">Display name<input id="zone-name" type="text" maxlength="80" autocomplete="off"></label>
+      <label class="field">Rule level
+        <select id="zone-type"><option value="warning_zone">Warning zone</option><option value="danger_zone">Danger zone</option></select>
+      </label>
+      <div class="zone-detail-strip"><span>Vertices</span><strong id="point-count">0</strong></div>
+      <div class="inspector-actions">
+        <button class="button button-secondary" type="button" id="redraw-zone">Redraw polygon</button>
+        <button class="button button-danger" type="button" id="delete-zone">Delete zone</button>
+      </div>
+    </div>
+
+    <details class="zone-guidance">
+      <summary class="panel-index">Drawing guidance</summary>
+      <ul>
+        <li>Use at least three points and follow the visible floor boundary.</li>
+        <li>Warning zones create an early visual boundary; danger zones represent the highest spatial alert level.</li>
+        <li>Save only after checking the polygon against the full source frame.</li>
+      </ul>
+    </details>
+
+    <details class="legacy-editor">
+      <summary>Legacy desktop editor</summary>
+      <p>Use this only if browser editing is unavailable. It opens the existing local Tkinter tool.</p>
+      <button class="button button-secondary" id="open-legacy-editor" type="button">Open desktop editor</button>
+    </details>
+  </aside>
+</section>
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='zones.js') }}" defer></script>{% endblock %}

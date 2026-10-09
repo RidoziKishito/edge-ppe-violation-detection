@@ -1,0 +1,9 @@
+<nav class="monitor-tabs" aria-label="Live Monitor views">
+  <a href="{{ url_for('index') }}" class="monitor-tab {{ 'active' if monitor_tab != 'zones' else '' }}" {% if monitor_tab != 'zones' %}aria-current="page"{% endif %}>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h18v13H3zM8 21h8M12 17v4"/></svg>Live view
+  </a>
+  <a href="{{ url_for('zones_page') }}" class="monitor-tab {{ 'active' if monitor_tab == 'zones' else '' }}" {% if monitor_tab == 'zones' %}aria-current="page"{% endif %}>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 17 3-11 10-2 3 13-8 4zM7 6l13 11"/></svg>Zone editor
+  </a>
+  <span class="tab-context">01 / LIVE MONITOR</span>
+</nav>

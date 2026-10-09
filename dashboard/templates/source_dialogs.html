@@ -1,0 +1,22 @@
+<div class="modal-backdrop hidden" id="video-picker" role="dialog" aria-modal="true" aria-labelledby="video-picker-title">
+  <div class="modal-panel picker-panel" tabindex="-1">
+    <div class="modal-header"><div><p class="panel-index">Input library</p><h2 id="video-picker-title">Select a video</h2></div><button class="icon-button" data-close-picker type="button" aria-label="Close video picker">×</button></div>
+    <div class="picker-controls">
+      <label class="field">Find video<input id="video-search" type="search" placeholder="Search by CMOT number or filename" autocomplete="off"></label>
+      <label class="field">Split<select id="video-split"><option value="">All videos</option><option value="train">Train</option><option value="valid">Valid</option><option value="test">Test</option><option value="local">Local</option><option value="uploaded">Uploaded</option></select></label>
+      <button class="button button-secondary" id="upload-video-button" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17V3m-5 5 5-5 5 5M4 15v6h16v-6"/></svg>Browse computer</button>
+      <input id="video-file" type="file" accept=".mp4,.avi,.mov,.mkv,.webm,.m4v" hidden>
+    </div>
+    <p class="picker-description">Choose a video to preview it. Configure zones, then use Start detection in Live view.</p>
+    <div class="picker-list" id="video-list"><div class="empty-state compact">Loading video library…</div></div>
+    <p class="picker-feedback" id="video-feedback" role="status"></p>
+  </div>
+</div>
+<div class="modal-backdrop hidden" id="asset-picker" role="dialog" aria-modal="true" aria-labelledby="asset-picker-title">
+  <div class="modal-panel picker-panel" tabindex="-1">
+    <div class="modal-header"><div><p class="panel-index">Saved polygons</p><h2 id="asset-picker-title">Zone assets</h2></div><button class="icon-button" data-close-picker type="button" aria-label="Close asset picker">×</button></div>
+    <p class="picker-description" id="asset-source">Assets for the selected video</p>
+    <div class="picker-list" id="asset-list"></div>
+    <div class="picker-footer"><a class="button button-secondary" href="{{ url_for('zones_page') }}">Open zone editor ↗</a><span>Save a named asset in Zone editor to reuse it here.</span></div>
+  </div>
+</div>

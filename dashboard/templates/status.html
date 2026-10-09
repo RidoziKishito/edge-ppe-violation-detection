@@ -1,65 +1,38 @@
 {% extends "base.html" %}
-
 {% block title %}System Status | Trinity{% endblock %}
-
 {% block content %}
 <header class="page-header">
-  <div>
-    <p class="eyebrow">System Status</p>
-    <h1>Edge Node Health</h1>
-  </div>
+  <div class="page-heading"><p class="eyebrow"><span class="signal-dot"></span> Edge diagnostics</p><h1>Runtime and model status</h1><p>Inspect the active local run without presenting reference benchmarks as live device telemetry.</p></div>
+  <div class="header-actions"><button class="button button-secondary" id="refresh-status" type="button">Refresh status</button></div>
 </header>
 
+<section class="status-hero panel">
+  <div class="status-primary"><span class="status-led unknown large" id="status-led"></span><div><p class="panel-index">Current runtime</p><h2 id="status-title">Checking local service</h2><p id="status-description">Reading the active run metadata.</p></div></div>
+  <div class="status-timestamp"><span>LAST METADATA UPDATE</span><strong id="status-updated">—</strong></div>
+</section>
+
 <section class="status-layout">
-  <div class="panel">
-    <div class="section-header"><h2>Edge Nodes</h2></div>
-    <div class="node-grid">
-      {% for node in nodes %}
-      <div class="node-card">
-        <div class="node-card-header">
-          <div>
-            <strong>{{ node.camera_id }}</strong>
-            <span>{{ node.location }}</span>
-          </div>
-          <span class="status-dot {{ node.status }}">{{ node.status }}</span>
-        </div>
-        <div class="node-metrics">
-          <span>FPS <strong>{{ node.fps }}</strong></span>
-          <span>Last heartbeat <strong>{{ node.heartbeat }}</strong></span>
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-  </div>
+  <article class="panel diagnostic-panel">
+    <div class="panel-header"><div><p class="panel-index">01 / Input</p><h2>Source configuration</h2></div><span class="equipment-mark">LOCAL</span></div>
+    <dl class="detail-list" id="input-details"><div><dt>Source</dt><dd>—</dd></div><div><dt>Camera ID</dt><dd>—</dd></div><div><dt>Zone profile</dt><dd>—</dd></div><div><dt>Headless mode</dt><dd>—</dd></div></dl>
+  </article>
+  <article class="panel diagnostic-panel">
+    <div class="panel-header"><div><p class="panel-index">02 / Model</p><h2>Inference configuration</h2></div><span class="equipment-mark">EDGE</span></div>
+    <dl class="detail-list" id="model-details"><div><dt>Model</dt><dd>—</dd></div><div><dt>Confidence</dt><dd>—</dd></div><div><dt>IoU</dt><dd>—</dd></div><div><dt>Inference interval</dt><dd>—</dd></div></dl>
+  </article>
+  <article class="panel diagnostic-panel">
+    <div class="panel-header"><div><p class="panel-index">03 / Event logic</p><h2>Temporal controls</h2></div><span class="equipment-mark">RULES</span></div>
+    <dl class="detail-list" id="rule-details"><div><dt>Smoothing</dt><dd>—</dd></div><div><dt>Alert cooldown</dt><dd>—</dd></div><div><dt>Live preview target</dt><dd>—</dd></div><div><dt>Frame push</dt><dd>—</dd></div></dl>
+  </article>
+  <article class="panel diagnostic-panel">
+    <div class="panel-header"><div><p class="panel-index">04 / Output</p><h2>Run result</h2></div><span class="equipment-mark">LOG</span></div>
+    <dl class="detail-list" id="output-details"><div><dt>Run ID</dt><dd>—</dd></div><div><dt>Started</dt><dd>—</dd></div><div><dt>Finished</dt><dd>—</dd></div><div><dt>Return code</dt><dd>—</dd></div></dl>
+  </article>
+</section>
 
-  <div class="panel">
-    <div class="section-header"><h2>Model Info</h2></div>
-    <dl class="detail-list">
-      <div><dt>Model name</dt><dd>baseline_yolo26n</dd></div>
-      <div><dt>Format</dt><dd>ONNX FP32</dd></div>
-      <div><dt>Inference speed</dt><dd>131 FPS</dd></div>
-      <div><dt>Temporal smoothing</dt><dd>N=5 consecutive frames</dd></div>
-    </dl>
-  </div>
-
-  <div class="panel wide">
-    <div class="metrics-banner">
-      <div>
-        <span class="metric-label">Bandwidth saving</span>
-        <strong>99.93%</strong>
-        <small>vs raw stream</small>
-      </div>
-      <div>
-        <span class="metric-label">False alarm reduction</span>
-        <strong>94.6%</strong>
-        <small>with temporal smoothing</small>
-      </div>
-      <div>
-        <span class="metric-label">Alert latency</span>
-        <strong>&lt;167ms</strong>
-        <small>edge event pipeline</small>
-      </div>
-    </div>
-  </div>
+<section class="system-note">
+  <span class="note-index">NOTE / 01</span>
+  <div><strong>Live telemetry is not currently exposed.</strong><p>FPS, hardware temperature, memory use and end-to-end latency are intentionally omitted until the pipeline reports them from the running edge device.</p></div>
 </section>
 {% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='status.js') }}" defer></script>{% endblock %}
