@@ -2,6 +2,7 @@ import argparse
 import json
 import math
 import os
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -274,7 +275,19 @@ def run_pipeline(
     frame_push_url=None,
 ):
     del classes_path  # Kept for CLI compatibility.
-    model = YOLO(model_path)
+    progress_path = Path(log_dir) / "progress.json"
+    stop_path = Path(log_dir) / "stop.request"
+    progress = {"stage": "loading", "message": "Loading detector and video…", "frame": 0}
+
+    def report(**updates):
+        progress.update(updates, updated_at=time.time())
+        progress_path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = progress_path.with_suffix(".tmp")
+        temporary.write_text(json.dumps(progress), encoding="utf-8")
+        os.replace(temporary, progress_path)
+
+    report()
+    model = YOLO(model_path, task="detect")
     zones_config = load_zones(zones_path)
 
     video_source = int(source) if source.isdigit() else source
@@ -286,6 +299,7 @@ def run_pipeline(
     fps = cap.get(cv2.CAP_PROP_FPS) or 15
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    report(total_frames=int(cap.get(cv2.CAP_PROP_FRAME_COUNT)), source_fps=fps)
     validate_zone_profile(zones_config, width, height)
 
     out_path = output_path or str(Path(str(source)).with_suffix("")) + "_output.mp4"
@@ -317,6 +331,8 @@ def run_pipeline(
     last_live_frame_at = None
     frame_push_failures = 0
     frame_id = 0
+    started_processing = None
+    last_report_at = 0
 
     last_zones_mtime = 0
     if Path(zones_path).exists():
@@ -329,6 +345,8 @@ def run_pipeline(
     )
 
     while True:
+        if stop_path.exists():
+            break
         ok, frame = cap.read()
         if not ok:
             break
@@ -348,12 +366,17 @@ def run_pipeline(
 
         inference_frame = should_run_inference(frame_id, inference_interval)
         if inference_frame:
+            if started_processing is None:
+                report(stage="warming", message="Preparing inference backend and first detection. Please wait…")
             cached_persons, cached_other_detections = infer_detections(
                 model,
                 frame,
                 conf_thres,
                 iou_thres,
             )
+            if started_processing is None:
+                started_processing = time.monotonic()
+                print("First detection complete. Publishing live frames.", flush=True)
 
         display.draw_zones(frame, zones_config)
         current_frame_alerts = evaluate_detections(
@@ -393,6 +416,13 @@ def run_pipeline(
                 last_live_frame_at = video_time_seconds
 
         writer.write(frame)
+        now = time.monotonic()
+        if now - last_report_at >= 0.5:
+            report(stage="running", message="Detection running", frame=frame_id,
+                   persons=len(cached_persons), ppe_detections=len(cached_other_detections),
+                   video_seconds=(frame_id - 1) / fps,
+                   processing_fps=round(max(0, frame_id - 1) / max(0.001, now - started_processing), 1))
+            last_report_at = now
         if not headless:
             cv2.imshow(window_name, frame)
             if cv2.waitKey(1) & 0xFF == ord("q"):
@@ -405,6 +435,8 @@ def run_pipeline(
 
     cap.release()
     writer.release()
+    report(stage="stopped" if stop_path.exists() else "completed", frame=frame_id,
+           message="Stopped" if stop_path.exists() else "Video completed")
     if not headless:
         cv2.destroyAllWindows()
     print(f"Output video saved to: {out_path}")

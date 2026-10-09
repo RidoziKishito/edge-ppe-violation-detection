@@ -2,7 +2,7 @@ opencv-python
 onnxruntime
 numpy
 flask
-ultralytics
+ultralytics==8.4.56
 onnx
 onnxslim
 pillow

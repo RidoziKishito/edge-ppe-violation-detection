@@ -3,38 +3,53 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Trinity Dashboard{% endblock %}</title>
+  <meta name="theme-color" content="#f2f2f0">
+  <meta name="description" content="Trinity edge PPE safety monitoring dashboard">
+  <title>{% block title %}Trinity Edge Safety{% endblock %}</title>
+  <script>if (!("CSSViewTransitionRule" in window)) document.documentElement.classList.add("page-motion-fallback");</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   {% block head %}{% endblock %}
 </head>
-<body>
-  <div class="app-shell">
-    <aside class="sidebar">
-      <div class="brand">
-        <span class="brand-mark"></span>
-        <div>
-          <div class="brand-name">Trinity</div>
-          <div class="brand-subtitle">Safety Monitor</div>
-        </div>
-      </div>
-      <nav class="nav-list" aria-label="Primary navigation">
-        <a class="nav-item {% if active_page == 'monitor' %}active{% endif %}" href="{{ url_for('index') }}">Live Monitor</a>
-        <a class="nav-item {% if active_page == 'analytics' %}active{% endif %}" href="{{ url_for('analytics') }}">Analytics</a>
-        <a class="nav-item {% if active_page == 'events' %}active{% endif %}" href="{{ url_for('events_page') }}">Event Log</a>
-        <a class="nav-item {% if active_page == 'status' %}active{% endif %}" href="{{ url_for('status') }}">System Status</a>
+<body class="app-shell page-{{ active_page }} {{ 'page-zone-editor' if monitor_tab == 'zones' else '' }}">
+  <script>try { if (localStorage.getItem('trinity-sidebar') === 'closed' || (localStorage.getItem('trinity-sidebar') === null && innerWidth < 900)) document.body.classList.add('sidebar-collapsed'); } catch (_) {}</script>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header" id="app-sidebar">
+    <div class="header-inner">
+      <a class="brand" href="{{ url_for('index') }}" aria-label="Trinity home">
+        <strong>TRINITY</strong>
+        <span>EDGE PPE<br>SAFETY</span>
+      </a>
+      <button class="menu-toggle" id="menu-toggle" type="button" aria-label="Collapse sidebar" aria-controls="app-sidebar" aria-expanded="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h18v16H3zM9 4v16m7-12-4 4 4 4"/></svg><span>Collapse sidebar</span></button>
+      <nav class="site-nav" id="site-nav" aria-label="Primary navigation">
+        <a class="nav-link {% if active_page == 'monitor' %}active{% endif %}" {% if active_page == 'monitor' %}aria-current="page"{% endif %} href="{{ url_for('index') }}"><b>01.</b><span>LIVE <br>MONITOR</span></a>
+        <a class="nav-link {% if active_page == 'analytics' %}active{% endif %}" {% if active_page == 'analytics' %}aria-current="page"{% endif %} href="{{ url_for('analytics') }}"><b>02.</b><span>SAFETY <br>ANALYTICS</span></a>
+        <a class="nav-link {% if active_page == 'events' %}active{% endif %}" {% if active_page == 'events' %}aria-current="page"{% endif %} href="{{ url_for('events_page') }}"><b>03.</b><span>EVENT <br>LOG</span></a>
+        <a class="nav-link {% if active_page == 'status' %}active{% endif %}" {% if active_page == 'status' %}aria-current="page"{% endif %} href="{{ url_for('status') }}"><b>04.</b><span>SYSTEM <br>STATUS</span></a>
       </nav>
-      <div class="sidebar-note">
-        Edge AI PPE monitoring for construction safety officers.
+      <div class="header-runtime" aria-live="polite">
+        <span class="status-led unknown" id="sidebar-runtime-led" aria-hidden="true"></span>
+        <span><strong id="sidebar-runtime-state">CHECKING</strong><small id="sidebar-runtime-source">LOCAL EDGE</small></span>
       </div>
-    </aside>
+    </div>
+  </header>
+  <div class="sidebar-reveal"><button id="sidebar-open" type="button" aria-label="Expand sidebar" aria-controls="app-sidebar" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h18v16H3zM9 4v16m4-12 4 4-4 4"/></svg></button></div>
 
-    <main class="main-content">
-      {% block content %}{% endblock %}
-    </main>
-  </div>
+  <main class="main-content swiss-grid" id="main-content" tabindex="-1">{% block content %}{% endblock %}</main>
+
+  <footer class="site-footer">
+    <strong>TRINITY / EDGE PPE SAFETY</strong>
+    <span>LOCAL INFERENCE · POLYGON RULES · EVENT EVIDENCE</span>
+    <span>RESEARCH PROTOTYPE</span>
+  </footer>
+  <div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+  {% if active_page == 'monitor' %}
+  {% include "source_dialogs.html" %}
+  <script src="{{ url_for('static', filename='workspace.js') }}" defer></script>
+  {% endif %}
   {% block scripts %}{% endblock %}
 </body>
 </html>

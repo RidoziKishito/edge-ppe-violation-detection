@@ -1,6 +1,7 @@
 # Python
 venv/
 .venv/
+.venv-dashboard/
 __pycache__/
 *.pyc
 *.pyo
@@ -50,3 +51,6 @@ edge-pipeline/media/videos/processed/*
 # Logs & runs
 logs/
 edge-pipeline/logs/
+dashboard/data/zone_assets/
+edge-pipeline/configs/zones/input_*.json
+edge-pipeline/configs/zones/*.json.bak
