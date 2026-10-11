@@ -1,7 +1,7 @@
 # Task 20 - Worker-centric runtime state and PPE event lifecycle
 
 > Module: 3 - Tracking & Worker-PPE Association
-> Phạm vi: thiết kế contract cho runtime; chưa tích hợp ByteTrack, chưa tạo dataset video và chưa huấn luyện model.
+> Phạm vi: thiết kế contract và tích hợp runtime nhẹ; chưa tạo dataset video ground truth và chưa huấn luyện lại model PPE.
 
 ## Mục tiêu
 
@@ -26,27 +26,24 @@ Project hiện tại phát hiện `Person`, PPE và `no_PPE` theo từng frame, 
 ```text
 Video/camera
    |
-   v
-YOLO hiện tại: Person + PPE/no_PPE boxes
-   |                         |
-   | Person boxes            | PPE evidence
-   v                         |
-ByteTrack (Task 22)          |
-   | track_id                |
-   +-------------+-----------+
-                 v
-      Association hiện tại: tâm PPE trong person box
-                 |
-                 v
-         WorkerState theo từng frame
-                 |
-                 +--> foot-point + polygon zone hiện tại
-                 |
-                 v
-        WorkerEvent theo từng worker/PPE
-                 |
-                 v
-       Logger + run archive + dashboard hiện tại
+   +--> YOLO11n COCO: Person boxes --> ByteTrack
+   |                                      |
+   +--> YOLO PPE hiện tại: PPE/no_PPE     | track_id
+                         |                |
+                         +--------+-------+
+                                  v
+                 tâm PPE trong person box
+                                  |
+                                  v
+                         WorkerState/frame
+                                  |
+                   foot-point + polygon zone
+                                  |
+                                  v
+                    WorkerEvent/worker/PPE
+                                  |
+                                  v
+                  Logger + archive + dashboard
 ```
 
 ## Quyết định phạm vi
@@ -67,4 +64,19 @@ ByteTrack (Task 22)          |
 
 ## Đầu ra của Task 20
 
-Năm tài liệu này chốt schema, enum, reason code, event identity và điểm nối với hệ thống cũ. JSON examples và contract tests đầy đủ sẽ được hoàn thiện ở bước kiểm thử tiếp theo; Task 21 mới bắt đầu xây dựng video ground truth.
+Năm tài liệu này chốt schema, enum, reason code, event identity và điểm nối với hệ thống cũ. Task 21 mới bắt đầu xây dựng video ground truth.
+
+## Trạng thái triển khai - 10/10/2026
+
+Contract nhẹ đã được đưa vào runtime mà không train lại detector:
+
+- [`person_tracker.py`](../../../edge-pipeline/person_tracker.py): adapter ByteTrack chỉ nhận Person detections và trả `track_id`, lost/removed IDs.
+- [`worker_state.py`](../../../edge-pipeline/worker_state.py): tạo WorkerState, ánh xạ 11 class sang `WORN/NOT_WORN/UNKNOWN` và sinh observation theo worker/PPE.
+- [`pipeline_control.py`](../../../edge-pipeline/pipeline_control.py): `WorkerEventEngine` tạo `START/UPDATE/END`, dwell time, cooldown và xử lý LOST/REMOVED/UNKNOWN.
+- [`logger.py`](../../../edge-pipeline/logger.py): giữ chín cột CSV cũ và bổ sung run/event/track/PPE/reason fields.
+- [`edge_infer.py`](../../../edge-pipeline/edge_infer.py): nối YOLO -> ByteTrack -> WorkerState -> WorkerEvent -> logger.
+- Runtime dùng hai detector: YOLO11n COCO chỉ lấy class `Person`; model PPE cũ bỏ qua class `Person` yếu và chỉ cung cấp bằng chứng PPE/no_PPE. Không cần gộp hoặc train lại hai dataset.
+- Khung hình đầu ra hiển thị `track_id`, số vi phạm, số PPE chưa đủ bằng chứng và owner `ID` trên từng box PPE đã gán được.
+- Dashboard và CLI truyền `run_id`; dashboard mặc định chỉ đếm `START` để các row `UPDATE/END` không làm sai số lượng cảnh báo.
+
+Contract tests hiện bao phủ hai worker trong cùng zone, track mất/tái xuất hiện, track kết thúc, PPE trở lại `WORN`, `UNKNOWN` không đóng event, nhãn xung đột, `no_vest` và PPE không có owner. Việc đo HOTA/IDF1, tune ByteTrack và xác nhận trên video ground truth vẫn thuộc Task 21-23.
