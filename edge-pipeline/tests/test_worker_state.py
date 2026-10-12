@@ -44,6 +44,14 @@ class TestWorkerState(unittest.TestCase):
         )
         self.assertEqual(states[0]["ppe"]["vest"]["state"], "UNKNOWN")
 
+    def test_no_vest_builds_not_worn_state_in_four_class_scope(self):
+        states, _ = worker_state.build_worker_states(
+            [person(7)], [ppe("no_vest")], {"zones": []}, "cam", "run", 10, 300
+        )
+        self.assertEqual(list(states[0]["ppe"]), ["helmet", "vest"])
+        self.assertEqual(states[0]["ppe"]["vest"]["state"], "NOT_WORN")
+        self.assertEqual(worker_state.state_violations(states[0]), ["no_vest"])
+
     def test_conflicting_positive_and_negative_evidence_is_unknown(self):
         states, _ = worker_state.build_worker_states(
             [person(7)],

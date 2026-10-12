@@ -12,7 +12,6 @@
   <div class="header-actions">
     {% include "source_actions.html" %}
     <button class="button button-secondary" type="button" id="reload-zones">Reload profile</button>
-    <button class="button button-primary" type="button" id="save-zones" disabled>Save asset</button>
   </div>
 </header>
 {% include "monitor_tabs.html" %}
@@ -35,7 +34,7 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 17 3-11 10-2 3 13-8 4z"/></svg>Draw points
       </button>
       <span class="toolbar-separator"></span>
-      <button class="tool-button" type="button" id="undo-point" disabled>Undo point</button>
+      <button class="tool-button" type="button" id="undo-point" disabled>Remove point</button>
       <button class="tool-button" type="button" id="finish-polygon" disabled>Finish polygon</button>
       <label class="overlay-toggle"><input type="checkbox" id="overlay-toggle" checked><span>Show overlay</span></label>
     </div>
@@ -45,17 +44,39 @@
       <div class="empty-state" id="zone-canvas-state"><span class="spinner"></span><strong>Preparing source frame</strong><p>The editor will preserve source-image coordinates when the canvas resizes.</p></div>
       <div class="canvas-help" id="canvas-help">Select a zone, then choose Draw points.</div>
     </div>
-    <div class="canvas-footer">
-      <span><kbd>Click</kbd> add or select</span><span><kbd>Drag</kbd> move vertex</span><span><kbd>Backspace</kbd> undo</span><span><kbd>Enter</kbd> finish</span><span><kbd>Esc</kbd> select mode</span>
+    <div class="canvas-footer" aria-label="Zone editor keyboard shortcuts">
+      <span><kbd>Click</kbd><em>Add / select</em></span>
+      <span><kbd>Drag</kbd><em>Move vertex</em></span>
+      <span><kbd>Backspace</kbd><em>Remove point</em></span>
+      <span><kbd>Ctrl + Z</kbd><em>Undo change</em></span>
+      <span><kbd>Enter</kbd><em>Finish polygon</em></span>
+      <span><kbd>Esc</kbd><em>Select mode</em></span>
     </div>
   </article>
 
   <aside class="panel zone-inspector">
     <div class="panel-header">
       <div><p class="panel-index">02 / Zone profile</p><h2>Configured zones</h2></div>
-      <button class="icon-button" type="button" id="add-zone" aria-label="Add a new zone" title="Add zone">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-      </button>
+      <div class="zone-profile-actions">
+        <button class="icon-button zone-action-button" type="button" id="save-zones" aria-label="Save zone asset" title="Save asset" disabled>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h7l2 2h9v11H3z"/></svg>
+        </button>
+        <button class="icon-button zone-action-button" type="button" id="add-zone" aria-label="Open new zone controls" aria-expanded="false" aria-controls="zone-create-panel" title="New zone">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="zone-create-panel hidden" id="zone-create-panel">
+      <div>
+        <p class="panel-index">New boundary</p>
+        <strong>Choose the alert level</strong>
+        <p>Create one zone, draw its polygon, then save the asset before adding another.</p>
+      </div>
+      <div class="zone-create-actions">
+        <button class="button button-secondary" type="button" id="create-warning-zone"><span class="zone-type-dot warning_zone"></span>Warning zone</button>
+        <button class="button button-secondary" type="button" id="create-danger-zone"><span class="zone-type-dot danger_zone"></span>Danger zone</button>
+        <button class="button button-secondary zone-create-cancel" type="button" id="cancel-create-zone">Cancel</button>
+      </div>
     </div>
     <div class="zone-list" id="zone-list"></div>
     <div class="asset-name-field"><label class="field">Asset name<input id="asset-name" type="text" maxlength="80" placeholder="e.g. Loading area — morning"></label><p>Save this video’s polygons as a reusable asset.</p></div>
@@ -83,12 +104,12 @@
       </ul>
     </details>
 
-    <details class="legacy-editor">
-      <summary>Legacy desktop editor</summary>
-      <p>Use this only if browser editing is unavailable. It opens the existing local Tkinter tool.</p>
-      <button class="button button-secondary" id="open-legacy-editor" type="button">Open desktop editor</button>
-    </details>
   </aside>
+</section>
+
+<section class="zone-assets-section zone-assets-full" aria-labelledby="editor-assets-title">
+  <div class="zone-assets-heading"><div><p class="panel-index">Saved polygons</p><h3 id="editor-assets-title">Saved zone assets</h3></div><span class="badge" id="editor-asset-count">0</span></div>
+  <div class="editor-asset-list" id="editor-asset-list"><div class="list-state"><span class="spinner"></span> Loading assets</div></div>
 </section>
 {% endblock %}
 

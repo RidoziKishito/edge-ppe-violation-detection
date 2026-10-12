@@ -2,24 +2,33 @@
   const ppeTypes = window.TRINITY_PPE_TYPES || [];
   const chartText = "#4b4b4b";
   const chartGrid = "rgba(0,0,0,.12)";
+  const ppeColors = { no_helmet: "#171717", no_vest: "#c87800" };
   if (window.Chart) {
     Chart.defaults.color = chartText;
     Chart.defaults.font.family = "Inter, sans-serif";
+    Chart.defaults.font.size = 12;
   }
 
-  const baseOptions = {
+  const axis = (title, beginAtZero = false) => ({
+    beginAtZero,
+    border: { display: false },
+    grid: { color: chartGrid },
+    ticks: { color: chartText, maxRotation: 0, precision: 0 },
+    title: { display: true, text: title, color: chartText, font: { size: 11, weight: "700" }, padding: 8 }
+  });
+  const chartOptions = ({ xTitle, yTitle, legend = false, indexAxis = "x" }) => ({
     responsive: true,
     maintainAspectRatio: false,
+    indexAxis,
     interaction: { intersect: false, mode: "index" },
     plugins: {
-      legend: { labels: { color: chartText, usePointStyle: true, boxWidth: 8, padding: 20 } },
-      tooltip: { backgroundColor: "#000000", titleColor: "#ffffff", bodyColor: "#eeeeee", padding: 12, cornerRadius: 0, displayColors: true }
+      legend: { display: legend, labels: { color: chartText, usePointStyle: true, boxWidth: 8, padding: 16 } },
+      tooltip: { backgroundColor: "#000000", titleColor: "#ffffff", bodyColor: "#eeeeee", padding: 12, cornerRadius: 0, displayColors: legend }
     },
-    scales: {
-      x: { border: { display: false }, grid: { color: chartGrid }, ticks: { color: chartText, maxRotation: 0 } },
-      y: { beginAtZero: true, border: { display: false }, grid: { color: chartGrid }, ticks: { color: chartText, precision: 0 } }
-    }
-  };
+    scales: indexAxis === "y"
+      ? { x: axis(xTitle, true), y: axis(yTitle) }
+      : { x: axis(xTitle), y: axis(yTitle, true) }
+  });
 
   const dayKey = date => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
   const within = (event, duration) => Date.now() - new Date(event.timestamp).getTime() <= duration && Date.now() >= new Date(event.timestamp).getTime();
@@ -65,7 +74,11 @@
     try {
       const response = await fetch("/api/events", { cache: "no-store" });
       if (!response.ok) throw new Error();
-      const events = (await response.json()).events || [];
+      const rawEvents = (await response.json()).events || [];
+      const events = rawEvents.map(event => ({
+        ...event,
+        missing_ppe: (event.missing_ppe || []).filter(type => ppeTypes.includes(type))
+      })).filter(event => event.missing_ppe.length > 0);
       document.getElementById("analytics-state").textContent = `${events.length} recorded events`;
       renderSummary(events);
       if (!events.length) {
@@ -81,9 +94,21 @@
         return;
       }
       const hourly = hourlyData(events); const levels = levelData(events);
-      new Chart(document.getElementById("hour-chart"), { type: "bar", data: { labels: hourly.labels, datasets: [{ label: "Violations", data: hourly.counts, backgroundColor: "#d5342b", borderRadius: 0, maxBarThickness: 22 }] }, options: baseOptions });
-      new Chart(document.getElementById("ppe-chart"), { type: "bar", data: { labels: ppeTypes.map(window.TrinityUI.ppeLabel), datasets: [{ label: "Events", data: ppeTypes.map(type => events.filter(event => event.missing_ppe.includes(type)).length), backgroundColor: ["#050505", "#d5342b", "#777777", "#c67a00"], borderRadius: 0 }] }, options: { ...baseOptions, indexAxis: "y", scales: { x: baseOptions.scales.y, y: baseOptions.scales.x } } });
-      new Chart(document.getElementById("level-chart"), { type: "line", data: { labels: levels.labels, datasets: [{ label: "Warning", data: levels.warning, borderColor: "#c67a00", pointBackgroundColor: "#c67a00", tension: 0 }, { label: "Critical", data: levels.critical, borderColor: "#d5342b", pointBackgroundColor: "#d5342b", tension: 0 }] }, options: baseOptions });
+      new Chart(document.getElementById("hour-chart"), {
+        type: "bar",
+        data: { labels: hourly.labels, datasets: [{ label: "Confirmed events", data: hourly.counts, backgroundColor: "#d5342b", borderRadius: 0, maxBarThickness: 30 }] },
+        options: chartOptions({ xTitle: "Hour (local time)", yTitle: "Event count" })
+      });
+      new Chart(document.getElementById("ppe-chart"), {
+        type: "bar",
+        data: { labels: ppeTypes.map(window.TrinityUI.ppeLabel), datasets: [{ label: "Confirmed events", data: ppeTypes.map(type => events.filter(event => event.missing_ppe.includes(type)).length), backgroundColor: ppeTypes.map(type => ppeColors[type]), borderRadius: 0, maxBarThickness: 38 }] },
+        options: chartOptions({ xTitle: "Confirmed event count", yTitle: "PPE requirement", indexAxis: "y" })
+      });
+      new Chart(document.getElementById("level-chart"), {
+        type: "line",
+        data: { labels: levels.labels, datasets: [{ label: "Warning", data: levels.warning, borderColor: "#c87800", backgroundColor: "#c87800", pointBackgroundColor: "#c87800", pointRadius: 3, tension: 0 }, { label: "Critical", data: levels.critical, borderColor: "#d5342b", backgroundColor: "#d5342b", pointBackgroundColor: "#d5342b", pointRadius: 3, tension: 0 }] },
+        options: chartOptions({ xTitle: "Date (MM–DD)", yTitle: "Event count", legend: true })
+      });
     } catch (error) {
       document.getElementById("analytics-state").textContent = "Data unavailable";
       document.getElementById("analytics-content").classList.add("hidden");

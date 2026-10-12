@@ -4,10 +4,7 @@ import numpy as np
 
 PPE_LABELS = {
     "helmet": "HEL",
-    "goggles": "EYE",
     "vest": "VST",
-    "gloves": "GLV",
-    "boots": "BTS",
 }
 
 

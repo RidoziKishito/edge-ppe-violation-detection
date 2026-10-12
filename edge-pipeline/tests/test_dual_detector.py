@@ -29,6 +29,7 @@ class DualDetectorTests(unittest.TestCase):
 
         self.assertEqual(people[0]["class_name"], "Person")
         self.assertEqual(people[0]["box"], (1, 2, 30, 80))
+        self.assertAlmostEqual(people[0]["conf"], 0.86, places=5)
         self.assertEqual(model.call_args.kwargs["classes"], [0])
         self.assertEqual(model.call_args.kwargs["conf"], 0.1)
 
@@ -52,6 +53,7 @@ class DualDetectorTests(unittest.TestCase):
         self.assertEqual(
             [item["class_name"] for item in detections], ["helmet", "no_helmet"]
         )
+        self.assertEqual(model.call_args.kwargs["classes"], [0, 7])
 
 
 if __name__ == "__main__":

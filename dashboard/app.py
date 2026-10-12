@@ -36,7 +36,11 @@ ZONE_NAMES = {
     "Z02": "Warning Zone (Scaffolding)",
 }
 
-PPE_TYPES = ["no_helmet", "no_gloves", "no_boots", "no_goggle"]
+# Dataset V2 exposes four detector labels. The dashboard reports them as two
+# compliance requirements and only treats the negative labels as violations.
+PPE_MODEL_LABELS = ["helmet", "no_helmet", "vest", "no_vest"]
+PPE_REQUIREMENTS = ["helmet", "vest"]
+PPE_VIOLATION_TYPES = ["no_helmet", "no_vest"]
 
 app = Flask(
     __name__,
@@ -53,9 +57,6 @@ except ImportError:
 LIVE_FRAME_CONDITION = threading.Condition(threading.Lock())
 latest_live_frame: bytes | None = None
 latest_live_frame_version = 0
-
-active_zone_editor_process = None
-
 
 def parse_timestamp(value: Any) -> datetime | None:
     if not value:
@@ -116,6 +117,56 @@ def parse_box(value: Any) -> list[int] | None:
     return None
 
 
+def parse_scene_workers(value: Any) -> list[dict[str, Any]]:
+    if isinstance(value, list):
+        records = value
+    else:
+        try:
+            records = json.loads(str(value or "[]"))
+        except (TypeError, ValueError, json.JSONDecodeError):
+            return []
+    workers = []
+    for record in records if isinstance(records, list) else []:
+        if not isinstance(record, dict):
+            continue
+        box = parse_box(record.get("box"))
+        if not box:
+            continue
+        states = record.get("ppe_states", {})
+        states = (
+            {key: state for key, state in states.items() if key in PPE_REQUIREMENTS}
+            if isinstance(states, dict)
+            else {}
+        )
+        confidences = record.get("ppe_confidences", {})
+        confidences = (
+            {
+                key: confidence
+                for key, confidence in confidences.items()
+                if key in PPE_REQUIREMENTS
+            }
+            if isinstance(confidences, dict)
+            else {}
+        )
+        workers.append(
+            {
+                "track_id": record.get("track_id"),
+                "box": box,
+                "confidence": round(
+                    float(record.get("confidence", 0.0) or 0.0), 3
+                ),
+                "violations": [
+                    item
+                    for item in parse_list_value(record.get("violations"))
+                    if item in PPE_VIOLATION_TYPES
+                ],
+                "ppe_states": states,
+                "ppe_confidences": confidences,
+            }
+        )
+    return workers
+
+
 def normalize_zone(value: Any) -> str:
     zones = parse_list_value(value)
     if not zones:
@@ -129,7 +180,16 @@ def normalize_event(raw: dict[str, Any], source: str) -> dict[str, Any] | None:
     if parsed_time is None:
         return None
 
-    missing_ppe = raw.get("missing_ppe", raw.get("violation_type", []))
+    raw_missing_ppe = parse_list_value(
+        raw.get("missing_ppe", raw.get("violation_type", []))
+    )
+    missing_ppe = [
+        item for item in raw_missing_ppe if item in PPE_VIOLATION_TYPES
+    ]
+    # Legacy demo logs contain classes outside the V2 study scope. Excluding
+    # those records keeps every dashboard total scientifically comparable.
+    if raw_missing_ppe and not missing_ppe:
+        return None
     frame_path = raw.get("frame_path", raw.get("snapshot_path"))
     box = raw.get("worker_id_box", raw.get("bbox"))
 
@@ -139,8 +199,9 @@ def normalize_event(raw: dict[str, Any], source: str) -> dict[str, Any] | None:
         "zone": normalize_zone(raw.get("zone", raw.get("zone_id"))),
         "zone_ids": parse_list_value(raw.get("zone", raw.get("zone_id"))),
         "alert_level": str(raw.get("alert_level", "NORMAL")).upper(),
-        "missing_ppe": parse_list_value(missing_ppe),
+        "missing_ppe": missing_ppe,
         "confidence": round(float(raw.get("confidence", 0.0) or 0.0), 3),
+        "frame_id": int(raw.get("frame_id", 0) or 0),
         "frame_path": None if not frame_path or str(frame_path).lower() == "none" else str(frame_path),
         "worker_id_box": parse_box(box),
         "event_id": raw.get("event_id") or None,
@@ -148,19 +209,42 @@ def normalize_event(raw: dict[str, Any], source: str) -> dict[str, Any] | None:
         "event_status": str(raw.get("event_status", "") or "").upper(),
         "track_id": raw.get("track_id") or None,
         "worker_key": raw.get("worker_key") or None,
-        "ppe_type": raw.get("ppe_type") or None,
+        "ppe_type": (
+            raw.get("ppe_type")
+            if raw.get("ppe_type") in PPE_MODEL_LABELS
+            else None
+        ),
         "ppe_state": raw.get("ppe_state") or None,
         "reason_code": raw.get("reason_code") or None,
+        "association_method": raw.get("association_method") or None,
+        "association_confidence": round(
+            float(raw.get("association_confidence", 0.0) or 0.0), 3
+        ),
+        "visibility": raw.get("visibility") or None,
+        "start_frame": int(raw.get("start_frame", 0) or 0),
+        "end_frame": int(raw.get("end_frame", 0) or 0),
+        "duration_ms": int(raw.get("duration_ms", 0) or 0),
+        "confirmation_observations": int(
+            raw.get("confirmation_observations", 0) or 0
+        ),
+        "frame_width": int(raw.get("frame_width", 0) or 0),
+        "frame_height": int(raw.get("frame_height", 0) or 0),
+        "scene_workers": parse_scene_workers(raw.get("scene_workers")),
         "source": source,
     }
 
 
 def alert_start_records(events):
-    """Keep lifecycle rows from inflating existing dashboard alert counts."""
+    """Expose new violations and meaningful zone-risk escalations."""
     return [
         event
         for event in events
-        if not event.get("event_action") or event["event_action"] == "START"
+        if not event.get("event_action")
+        or event["event_action"] == "START"
+        or (
+            event["event_action"] == "UPDATE"
+            and event.get("reason_code") == "ZONE_ESCALATION"
+        )
     ]
 
 
@@ -329,7 +413,13 @@ def active_live_frame(mode="worker") -> Path | None:
     live_frame = run_dir / (
         "live_frame_debug.jpg" if mode == "debug" else "live_frame.jpg"
     )
-    return live_frame if live_frame.is_file() else None
+    if live_frame.is_file():
+        return live_frame
+    # A new run always has a prepared worker frame before the first inference.
+    # Use it while Debug view is waiting for its first rendered debug frame so
+    # the UI never falls back to a misleading "No camera frame" state.
+    fallback = run_dir / "live_frame.jpg"
+    return fallback if mode == "debug" and fallback.is_file() else None
 
 
 def active_source_path(metadata: dict[str, Any] | None) -> Path | None:
@@ -527,12 +617,21 @@ def index():
 
 @app.route("/analytics")
 def analytics():
-    return render_template("analytics.html", active_page="analytics", ppe_types=PPE_TYPES)
+    return render_template(
+        "analytics.html",
+        active_page="analytics",
+        ppe_types=PPE_VIOLATION_TYPES,
+        model_labels=PPE_MODEL_LABELS,
+    )
 
 
 @app.route("/events")
 def events_page():
-    return render_template("events.html", active_page="events", ppe_types=PPE_TYPES)
+    return render_template(
+        "events.html",
+        active_page="events",
+        ppe_types=PPE_VIOLATION_TYPES,
+    )
 
 
 @app.route("/zones")
@@ -846,7 +945,12 @@ def api_start_run():
 def api_run_settings():
     try:
         payload = request.get_json(silent=True) or {}
-        return jsonify(ok=True, run=workflow.update_settings(payload.get("confidence")))
+        return jsonify(
+            ok=True,
+            run=workflow.update_settings(
+                payload.get("confidence"), payload.get("person_confidence")
+            ),
+        )
     except (ValueError, OSError) as error:
         return jsonify(ok=False, error=str(error)), 400
 
@@ -872,6 +976,7 @@ def api_zone_assets():
                 assets.append({field: asset.get(field) for field in ("id", "name", "source_name", "updated_at")})
         except (OSError, ValueError):
             continue
+    assets.sort(key=lambda asset: str(asset.get("updated_at") or ""), reverse=True)
     return jsonify(assets=assets, active_id=(metadata or {}).get("zone_asset_id"), source_name=(metadata or {}).get("source_name"))
 
 
@@ -942,40 +1047,6 @@ def api_zone_frame():
     response = send_file(fallback, mimetype="image/jpeg", max_age=0)
     response.headers["Cache-Control"] = "no-store"
     return response
-
-
-@app.route("/api/edit-zones", methods=["POST"])
-def api_edit_zones():
-    global active_zone_editor_process
-    
-    if active_zone_editor_process is not None and active_zone_editor_process.poll() is None:
-        return jsonify({"ok": False, "error": "Editor is already open"}), 400
-
-    run_dir, metadata = active_run()
-    if not run_dir or not metadata:
-        return jsonify({"ok": False, "error": "No active run"}), 400
-    
-    source_path = active_source_path(metadata)
-    if source_path is None:
-        return jsonify({"ok": False, "error": "Source not found in metadata"}), 400
-
-    import subprocess
-    import sys
-    
-    check_py_path = EDGE_PIPELINE_DIR / "check.py"
-    # Run the zone editor without showing a console window
-    creation_flags = 0
-    if sys.platform == "win32":
-        creation_flags = subprocess.CREATE_NO_WINDOW
-
-    active_zone_editor_process = subprocess.Popen([
-        sys.executable,
-        str(check_py_path),
-        "--source",
-        str(source_path)
-    ], cwd=str(EDGE_PIPELINE_DIR), creationflags=creation_flags)
-    
-    return jsonify({"ok": True, "message": "Zone editor launched"})
 
 
 @app.route("/video-feed")

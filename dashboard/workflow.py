@@ -123,6 +123,7 @@ class VideoWorkflow:
             model = self.model_path(previous)
             person_model = self.person_model_path(previous)
             confidence = float((previous or {}).get("confidence", 0.4))
+            person_confidence = float((previous or {}).get("person_confidence", 0.2))
             key = source_key(path)
             run_id = f"{datetime.now():%Y%m%d_%H%M%S_%f}_{secure_filename(path.stem)}"
             run_dir = self.runs / run_id
@@ -136,7 +137,7 @@ class VideoWorkflow:
                         "ppe_model": str(model) if model else "",
                         "person_model": str(person_model) if person_model else "",
                         "zone_profile": str(zone_path), "width": width, "height": height,
-                        "headless": True, "confidence": confidence, "person_confidence": 0.2,
+                        "headless": True, "confidence": confidence, "person_confidence": person_confidence,
                         "iou": 0.45, "smoothing_frames": 5,
                         "inference_interval": 3, "alert_cooldown_seconds": 5, "live_preview_fps": 12,
                         "prepared_at": datetime.now().isoformat(timespec="seconds")}
@@ -145,21 +146,29 @@ class VideoWorkflow:
             write_json(self.pointer, {"run_id": run_id, "run_dir": str(run_dir)})
             return metadata
 
-    def update_settings(self, confidence):
+    def update_settings(self, confidence=None, person_confidence=None):
         """Persist lightweight inference settings for the next run."""
         with self.lock:
             if self.busy():
-                raise ValueError("Stop the active detection run before changing PPE confidence.")
+                raise ValueError("Stop the active detection run before changing detection thresholds.")
             run_dir, metadata = self.get_active()
             if run_dir is None or metadata is None:
-                raise ValueError("Select an input video before changing PPE confidence.")
-            try:
-                confidence = float(confidence)
-            except (TypeError, ValueError):
-                raise ValueError("PPE confidence must be a number.") from None
-            if not 0.1 <= confidence <= 0.9:
-                raise ValueError("PPE confidence must be between 0.10 and 0.90.")
-            metadata["confidence"] = round(confidence, 2)
+                raise ValueError("Select an input video before changing detection thresholds.")
+
+            values = {
+                "confidence": (confidence, "PPE confidence"),
+                "person_confidence": (person_confidence, "Person confidence"),
+            }
+            for key, (value, label) in values.items():
+                if value is None:
+                    continue
+                try:
+                    normalized = float(value)
+                except (TypeError, ValueError):
+                    raise ValueError(f"{label} must be a number.") from None
+                if not 0.1 <= normalized <= 0.9:
+                    raise ValueError(f"{label} must be between 0.10 and 0.90.")
+                metadata[key] = round(normalized, 2)
             write_json(run_dir / "run.json", metadata)
             return metadata
 

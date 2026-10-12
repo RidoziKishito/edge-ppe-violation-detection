@@ -28,13 +28,16 @@ prepare_onnx_runtime()
 import display
 import rule_engine
 from logger import EdgeLogger
-from person_tracker import PersonTracker
+from person_tracker import DEFAULT_TRACK_LOW_THRESH, PersonTracker
 from pipeline_control import (
     WorkerEventEngine,
     should_publish_live_frame,
     should_run_inference,
 )
 import worker_state
+
+
+PPE_STUDY_CLASSES = {"helmet", "no_helmet", "vest", "no_vest"}
 
 
 def load_zones(zones_path):
@@ -64,7 +67,13 @@ def _class_ids(model, class_name):
     return [int(class_id) for class_id, name in items if str(name).lower() == class_name.lower()]
 
 
-def infer_person_detections(model, frame, conf_thres, iou_thres):
+def infer_person_detections(
+    model,
+    frame,
+    conf_thres,
+    iou_thres,
+    track_low_thresh=DEFAULT_TRACK_LOW_THRESH,
+):
     """Detect people with a general-purpose detector for ByteTrack input."""
     persons = []
     person_class_ids = _class_ids(model, "person")
@@ -74,14 +83,17 @@ def infer_person_detections(model, frame, conf_thres, iou_thres):
         frame,
         stream=True,
         verbose=False,
-        conf=min(conf_thres, 0.1),
+        # Keep weak Person boxes available for ByteTrack's second association.
+        # They can rescue an existing ID, but cannot create a new track because
+        # new tracks still have to pass new_track_thresh in PersonTracker.
+        conf=min(float(conf_thres), float(track_low_thresh)),
         iou=iou_thres,
         classes=person_class_ids,
     )
     for result in results:
         for box in result.boxes:
             x1, y1, x2, y2 = map(int, box.xyxy[0])
-            confidence = math.ceil(float(box.conf[0]) * 100) / 100
+            confidence = float(box.conf[0])
             persons.append({
                 "box": (x1, y1, x2, y2),
                 "conf": confidence,
@@ -91,19 +103,29 @@ def infer_person_detections(model, frame, conf_thres, iou_thres):
 
 
 def infer_ppe_detections(model, frame, conf_thres, iou_thres):
-    """Detect PPE evidence while deliberately ignoring this model's Person class."""
+    """Detect only the four labels in the helmet/vest study scope."""
     detections = []
+    names = model.names
+    items = names.items() if isinstance(names, dict) else enumerate(names)
+    ppe_class_ids = [
+        int(class_id)
+        for class_id, name in items
+        if str(name).lower() in PPE_STUDY_CLASSES
+    ]
+    if not ppe_class_ids:
+        raise ValueError("The PPE model does not expose the four-label study scope.")
     results = model(
         frame,
         stream=True,
         verbose=False,
         conf=conf_thres,
         iou=iou_thres,
+        classes=ppe_class_ids,
     )
     for result in results:
         for box in result.boxes:
             class_name = model.names[int(box.cls[0])]
-            if str(class_name).lower() == "person":
+            if str(class_name).lower() not in PPE_STUDY_CLASSES:
                 continue
             x1, y1, x2, y2 = map(int, box.xyxy[0])
             confidence = math.ceil(float(box.conf[0]) * 100) / 100
@@ -123,7 +145,7 @@ def infer_detections(model, frame, conf_thres, iou_thres):
         frame,
         stream=True,
         verbose=False,
-        conf=min(conf_thres, 0.1),
+        conf=min(float(conf_thres), DEFAULT_TRACK_LOW_THRESH),
         iou=iou_thres,
     )
     for result in results:
@@ -138,7 +160,10 @@ def infer_detections(model, frame, conf_thres, iou_thres):
             }
             if str(class_name).lower() == "person":
                 persons.append(detection)
-            elif confidence >= conf_thres:
+            elif (
+                str(class_name).lower() in PPE_STUDY_CLASSES
+                and confidence >= conf_thres
+            ):
                 other_detections.append(detection)
     return persons, other_detections
 
@@ -430,10 +455,43 @@ def run_pipeline(
                     for state in cached_worker_states
                     for ppe_type, record in state["ppe"].items()
                 },
+                worker_contexts={
+                    state["track_id"]: {
+                        "frame_id": state["frame_id"],
+                        "timestamp_ms": state["timestamp_ms"],
+                        "bbox": state["person"]["box"],
+                        "active_zones": state["active_zones"],
+                        "violation_alert_level": rule_engine.classify_alert(
+                            state["active_zones"], ["latched_violation"]
+                        ),
+                    }
+                    for state in cached_worker_states
+                },
                 frame_id=frame_id,
             )
             for log_data in valid_logs:
-                safety_logger.log_event(log_data, frame_img=worker_frame)
+                log_data["frame_width"] = width
+                log_data["frame_height"] = height
+                log_data["scene_workers"] = [
+                    {
+                        "track_id": state["track_id"],
+                        "box": state["person"]["box"],
+                        "confidence": state["person"]["confidence"],
+                        "violations": worker_state.state_violations(state),
+                        "ppe_states": {
+                            ppe_type: record["state"]
+                            for ppe_type, record in state["ppe"].items()
+                        },
+                        "ppe_confidences": {
+                            ppe_type: record["confidence"]
+                            for ppe_type, record in state["ppe"].items()
+                        },
+                    }
+                    for state in cached_worker_states
+                ]
+                evidence_frame = frame.copy()
+                display.draw_zones(evidence_frame, zones_config)
+                safety_logger.log_event(log_data, frame_img=evidence_frame)
 
         video_time_seconds = (frame_id - 1) / fps
         if (live_frame_path or frame_push_url) and should_publish_live_frame(

@@ -80,13 +80,14 @@
     xhr.onloadend = () => { pending = false; $("video-list").inert = false; $("upload-video-button").disabled = false; $("video-file").value = ""; };
     xhr.send(data);
   });
-  $("choose-asset").addEventListener("click", async () => {
-    openPicker("asset-picker", $("choose-asset")); $("asset-list").textContent = "Loading saved assets…";
+  const assetButton = $("choose-asset");
+  assetButton?.addEventListener("click", async () => {
+    openPicker("asset-picker", assetButton); $("asset-list").textContent = "Loading saved assets…";
     try {
       const payload = await json("/api/zone-assets");
       $("asset-source").textContent = payload.source_name ? `Compatible assets / ${payload.source_name}` : "Select an input video first.";
       $("asset-list").innerHTML = "";
-      if (!payload.assets.length) $("asset-list").innerHTML = '<div class="empty-state compact"><strong>No saved assets for this video</strong><p>Open Zone editor, draw the boundaries and choose Save asset.</p></div>';
+      if (!payload.assets.length) $("asset-list").innerHTML = '<div class="empty-state compact"><strong>No saved assets for this video</strong><p>Use Zone editor to draw and save the first asset.</p></div>';
       payload.assets.forEach(asset => {
         const button = document.createElement("button"); button.className = "picker-item"; button.type = "button";
         button.innerHTML = `<span class="file-symbol" aria-hidden="true">◇</span><span><strong>${safe(asset.name)}</strong><small>${safe(asset.source_name)}</small></span><span class="badge">${asset.id === payload.active_id ? "Selected" : "Apply"}</span>`;

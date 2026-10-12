@@ -75,9 +75,15 @@ class TemporalSmoother:
 class WorkerEventEngine:
     """Create deduplicated START/UPDATE/END events per worker and PPE."""
 
-    def __init__(self, required_frames=5, cooldown_seconds=5.0):
+    def __init__(
+        self,
+        required_frames=5,
+        cooldown_seconds=5.0,
+        activation_unknown_grace=1,
+    ):
         self.required_frames = max(1, int(required_frames))
         self.cooldown_seconds = max(0.0, float(cooldown_seconds))
+        self.activation_unknown_grace = max(0, int(activation_unknown_grace))
         self.events = {}
 
     @staticmethod
@@ -101,6 +107,8 @@ class WorkerEventEngine:
             state["event_id"] = f"evt_{uuid4().hex}"
             state["start_frame"] = frame_id
             state["start_timestamp_ms"] = timestamp_ms
+            record["confirmation_observations"] = self.required_frames
+            record["capture_snapshot"] = True
         end_frame = frame_id if action == "END" else None
         duration_ms = max(0, timestamp_ms - state.get("start_timestamp_ms", timestamp_ms))
         record.update(
@@ -123,12 +131,14 @@ class WorkerEventEngine:
         lost_track_ids=None,
         removed_track_ids=None,
         worker_ppe_states=None,
+        worker_contexts=None,
         frame_id=None,
     ):
         active_track_ids = set(active_track_ids or ())
         lost_track_ids = set(lost_track_ids or ())
         removed_track_ids = set(removed_track_ids or ())
         worker_ppe_states = worker_ppe_states or {}
+        worker_contexts = worker_contexts or {}
         emitted = []
         keys = set(self.events).union(observations)
 
@@ -138,6 +148,7 @@ class WorkerEventEngine:
                 key,
                 {
                     "candidate_count": 0,
+                    "candidate_unknown_count": 0,
                     "clear_count": 0,
                     "active": False,
                     "event_id": None,
@@ -149,11 +160,24 @@ class WorkerEventEngine:
 
             if current is not None:
                 state["clear_count"] = 0
+                state["candidate_unknown_count"] = 0
                 state["last_observation"] = current
                 signature = self._signature(current)
                 if state["active"]:
                     if signature != state["last_signature"]:
-                        emitted.append(self._emit(state, "UPDATE", current))
+                        previous_level = state["last_signature"][0]
+                        is_escalation = (
+                            ALERT_SEVERITY.get(current["alert_level"], 0)
+                            > ALERT_SEVERITY.get(previous_level, 0)
+                        )
+                        update = self._emit(
+                            state,
+                            "UPDATE",
+                            current,
+                            "ZONE_ESCALATION" if is_escalation else None,
+                        )
+                        update["capture_snapshot"] = is_escalation
+                        emitted.append(update)
                         state["last_signature"] = signature
                     continue
 
@@ -169,8 +193,32 @@ class WorkerEventEngine:
                     emitted.append(self._emit(state, "START", current))
                 continue
 
-            state["candidate_count"] = 0
             if not state["active"]:
+                last = state["last_observation"]
+                if last is None:
+                    state["candidate_count"] = 0
+                    state["candidate_unknown_count"] = 0
+                    continue
+                track_id = self._track_id(last)
+                ppe_type = last.get("ppe_type")
+                observed_state = worker_ppe_states.get(
+                    (track_id, ppe_type), "UNKNOWN"
+                )
+                can_bridge_unknown = (
+                    state["candidate_count"] > 0
+                    and track_id in active_track_ids
+                    and track_id not in removed_track_ids
+                    and observed_state == "UNKNOWN"
+                    and state["candidate_unknown_count"]
+                    < self.activation_unknown_grace
+                )
+                if can_bridge_unknown:
+                    state["candidate_unknown_count"] += 1
+                    continue
+                # An explicit WORN observation, a removed track, or more than
+                # one uncertain inference breaks an unconfirmed violation.
+                state["candidate_count"] = 0
+                state["candidate_unknown_count"] = 0
                 continue
 
             last = state["last_observation"]
@@ -186,6 +234,37 @@ class WorkerEventEngine:
                     observed_state = worker_ppe_states.get(
                         (track_id, ppe_type), "UNKNOWN"
                     )
+                    if observed_state == "UNKNOWN":
+                        context = worker_contexts.get(track_id)
+                        if context:
+                            refreshed = dict(last)
+                            refreshed.update(
+                                frame_id=int(context.get("frame_id", frame_id or last["frame_id"])),
+                                timestamp_ms=int(context.get("timestamp_ms", timestamp_seconds * 1000)),
+                                bbox=context.get("bbox", last.get("bbox")),
+                                active_zones=context.get("active_zones", last.get("active_zones", [])),
+                                alert_level=context.get("violation_alert_level", last["alert_level"]),
+                            )
+                            signature = self._signature(refreshed)
+                            if signature != state["last_signature"]:
+                                previous_level = state["last_signature"][0]
+                                is_escalation = (
+                                    ALERT_SEVERITY.get(refreshed["alert_level"], 0)
+                                    > ALERT_SEVERITY.get(previous_level, 0)
+                                )
+                                update = self._emit(
+                                    state,
+                                    "UPDATE",
+                                    refreshed,
+                                    "ZONE_ESCALATION" if is_escalation else "ZONE_CHANGED",
+                                )
+                                update["capture_snapshot"] = is_escalation
+                                emitted.append(update)
+                                state["last_signature"] = signature
+                            state["last_observation"] = refreshed
+                        # A confirmed violation is retained while current PPE
+                        # evidence is uncertain. Zone transitions still apply.
+                        continue
                     if observed_state != "WORN":
                         # Missing/uncertain evidence must not be interpreted as
                         # proof that the worker restored compliance.

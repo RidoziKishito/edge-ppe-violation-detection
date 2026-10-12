@@ -6,16 +6,26 @@
   const filters = ["filter-start", "filter-end", "filter-camera", "filter-zone", "filter-level", "filter-ppe"];
   let modalTrigger = null;
   let restoreSidebar = null;
+  let cleanupSpotlight = null;
   let cameraOptions = [], optionIndex = -1, exactCamera = "";
   let selectionVersion = 0;
   document.getElementById("event-modal-image").addEventListener("error", () => {
-    document.getElementById("event-modal-image").classList.add("hidden");
+    document.getElementById("event-modal-stage").classList.add("hidden");
     document.getElementById("event-modal-fallback").classList.remove("hidden");
   });
 
   const formatDate = value => { const date = new Date(value); return Number.isNaN(date.getTime()) ? value : date.toLocaleString(); };
   const badge = level => `<span class="badge badge-${safe(String(level).toLowerCase())}">${safe(level)}</span>`;
   const tags = items => items?.length ? items.map(item => `<span class="tag">${safe(window.TrinityUI.ppeLabel(item))}</span>`).join("") : '<span class="muted">Not recorded</span>';
+  const workerLabel = event => event.track_id == null ? "Worker unavailable" : `Worker ${event.track_id}`;
+  const evidenceQuality = confidence => Number(confidence) >= .5 ? "Strong evidence" : Number(confidence) >= .3 ? "Review recommended" : "Low-confidence evidence";
+  const eventRecap = event => {
+    const missing = event.missing_ppe.map(window.TrinityUI.ppeLabel).join(", ") || "a zone-presence alert";
+    const location = event.zone === "Unassigned" ? "No configured zone was assigned." : `Location: ${event.zone}.`;
+    const confirmation = event.confirmation_observations ? ` after ${event.confirmation_observations} supporting detections` : "";
+    if (event.reason_code === "ZONE_ESCALATION") return `${workerLabel(event)} entered ${event.zone} while the active ${missing} violation was retained. Risk escalated to ${event.alert_level}; evidence confidence remains ${Math.round((event.confidence || 0) * 100)}%.`;
+    return `${workerLabel(event)} triggered an alert for ${missing}${confirmation}. ${location} Evidence confidence: ${Math.round((event.confidence || 0) * 100)}% (${evidenceQuality(event.confidence).toLowerCase()}).`;
+  };
 
   function currentFilters() {
     return { start: $("filter-start").value, end: $("filter-end").value, camera: $("filter-camera").value.toLowerCase(), zone: $("filter-zone").value.toLowerCase(), level: $("filter-level").value, ppe: $("filter-ppe").value };
@@ -59,9 +69,14 @@
     document.querySelectorAll(".sort-button").forEach(button => { const active = button.dataset.sort === sortKey; button.classList.toggle("active", active); button.querySelector("span").textContent = active ? (sortDirection === "asc" ? "↑" : "↓") : "↕"; });
   }
   function openEvent(event, trigger) {
-    modalTrigger = trigger; const modal = $("event-modal"); const image = $("event-modal-image"); const fallback = $("event-modal-fallback");
-    $("event-modal-details").innerHTML = `<div><dt>Timestamp</dt><dd>${safe(formatDate(event.timestamp))}</dd></div><div><dt>Camera</dt><dd>${safe(event.camera_id)}</dd></div><div><dt>Zone</dt><dd>${safe(event.zone)}</dd></div><div><dt>Alert</dt><dd>${badge(event.alert_level)}</dd></div><div><dt>Missing PPE</dt><dd>${event.missing_ppe.map(item => safe(window.TrinityUI.ppeLabel(item))).join(", ") || "Not recorded"}</dd></div><div><dt>Confidence</dt><dd>${Math.round((event.confidence || 0) * 100)}%</dd></div>`;
-    if (event.snapshot_url) { image.src = event.snapshot_url; image.classList.remove("hidden"); fallback.classList.add("hidden"); } else { image.removeAttribute("src"); image.classList.add("hidden"); fallback.classList.remove("hidden"); }
+    modalTrigger = trigger; const modal = $("event-modal"); const image = $("event-modal-image"); const stage = $("event-modal-stage"); const spotlights = $("event-modal-spotlights"); const fallback = $("event-modal-fallback");
+    $("event-modal-recap").textContent = eventRecap(event);
+    $("event-modal-details").innerHTML = `<div><dt>Timestamp</dt><dd>${safe(formatDate(event.timestamp))}</dd></div><div><dt>Camera</dt><dd>${safe(event.camera_id)}</dd></div><div><dt>Worker</dt><dd>${safe(workerLabel(event))}</dd></div><div><dt>Zone</dt><dd>${safe(event.zone)}</dd></div><div><dt>Alert</dt><dd>${badge(event.alert_level)}</dd></div><div><dt>Missing PPE</dt><dd>${event.missing_ppe.map(item => safe(window.TrinityUI.ppeLabel(item))).join(", ") || "Not recorded"}</dd></div><div><dt>Evidence quality</dt><dd>${Math.round((event.confidence || 0) * 100)}% · ${safe(evidenceQuality(event.confidence))}</dd></div><div><dt>Confirmation</dt><dd>${event.confirmation_observations ? `${safe(event.confirmation_observations)} supporting detections` : "Legacy event"}</dd></div>`;
+    if (event.snapshot_url) {
+      cleanupSpotlight?.(); cleanupSpotlight = null;
+      image.onload = () => { cleanupSpotlight = window.TrinityUI.setupSnapshotSpotlight(stage, image, spotlights, event); };
+      image.src = event.snapshot_url; stage.classList.remove("hidden"); fallback.classList.add("hidden");
+    } else { image.removeAttribute("src"); stage.classList.add("hidden"); fallback.classList.remove("hidden"); }
     restoreSidebar?.();
     restoreSidebar = window.TrinityUI.temporarilyHideSidebar();
     modal.classList.remove("hidden"); document.body.classList.add("modal-open"); modal.querySelector(".modal-panel").focus();
@@ -70,6 +85,10 @@
     $("event-modal").classList.add("hidden");
     document.body.classList.remove("modal-open");
     $("event-modal-image").removeAttribute("src");
+    cleanupSpotlight?.(); cleanupSpotlight = null;
+    $("event-modal-spotlights").innerHTML = "";
+    $("event-modal-stage").classList.add("hidden");
+    $("event-modal-recap").textContent = "";
     restoreSidebar?.();
     restoreSidebar = null;
     modalTrigger?.focus();

@@ -56,16 +56,30 @@ class DashboardWorkflowTests(unittest.TestCase):
         response.close()
         self.assertEqual(self.client.post("/api/videos", json={"id": "../../secret"}).status_code, 400)
 
-    def test_ppe_confidence_setting_is_validated_and_preserved(self):
+    def test_detection_thresholds_are_validated_and_preserved(self):
         run = self.select()
-        response = self.client.post("/api/run/settings", json={"confidence": 0.25})
+        response = self.client.post(
+            "/api/run/settings",
+            json={"confidence": 0.25, "person_confidence": 0.15},
+        )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_json()["run"]["confidence"], 0.25)
+        self.assertEqual(response.get_json()["run"]["person_confidence"], 0.15)
         stored = json.loads((self.workflow.runs / run["run_id"] / "run.json").read_text(encoding="utf-8"))
         self.assertEqual(stored["confidence"], 0.25)
+        self.assertEqual(stored["person_confidence"], 0.15)
         next_run = self.workflow.prepare(self.source)
         self.assertEqual(next_run["confidence"], 0.25)
+        self.assertEqual(next_run["person_confidence"], 0.15)
         self.assertEqual(self.client.post("/api/run/settings", json={"confidence": 0.01}).status_code, 400)
+        self.assertEqual(self.client.post("/api/run/settings", json={"person_confidence": 0.95}).status_code, 400)
+
+    def test_debug_preview_falls_back_to_prepared_camera_frame(self):
+        self.select()
+        response = self.client.get("/api/live-frame?mode=debug")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.mimetype, "image/jpeg")
+        response.close()
 
     def test_library_id_is_portable_and_cmot_is_not_duplicated(self):
         first = self.root / "machine-a" / "media" / "videos" / "input" / "CMOT" / "test" / "0003.mp4"
