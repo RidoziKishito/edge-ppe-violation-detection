@@ -46,7 +46,7 @@ svg { fill: none; stroke: currentColor; stroke-linecap: square; stroke-linejoin:
 .header-runtime small { color: #bdbdbd; font-weight: 500; }
 .menu-toggle { display: none; }
 .status-led { width: 9px; height: 9px; flex: none; display: inline-block; background: #808080; border: 1px solid currentColor; }
-.status-led.running, .status-led.starting { background: #42ce79; animation: blink 1.7s step-end infinite; }
+.status-led.running, .status-led.starting, .status-led.finalizing { background: #42ce79; animation: blink 1.7s step-end infinite; }
 .status-led.completed { background: #63aef0; }
 .status-led.error { background: #ff4038; }
 .status-led.idle { background: #9a9a9a; }
@@ -90,6 +90,11 @@ svg { fill: none; stroke: currentColor; stroke-linecap: square; stroke-linejoin:
 .panel-index { margin: 0; color: var(--red); font-size: 10px; }
 .panel-unit, .equipment-mark { color: var(--muted); font-size: 9px; }
 .panel-meta { display: flex; align-items: center; gap: 10px; color: var(--muted); font: 700 9px/1.3 var(--mono); text-transform: uppercase; }
+.view-switch { display: inline-flex; padding: 2px; gap: 2px; background: #fff; border: 1px solid #000; box-shadow: 0 1px 4px rgba(0,0,0,.35); }
+.view-switch-button { min-height: 25px; padding: 0 9px; color: #000; background: #fff; border: 0; cursor: pointer; font: 800 8px/1 var(--mono); letter-spacing: .04em; text-transform: uppercase; transition: color 140ms ease, background 140ms ease; }
+.view-switch-button:hover { color: #fff; background: #333; }
+.view-switch-button.active { color: #fff; background: #000; }
+.video-view-toolbar { width: fit-content; padding: 2px; display: inline-flex; gap: 2px; background: #fff; border: 1px solid #000; box-shadow: 0 1px 4px rgba(0,0,0,.35); pointer-events: auto; }
 .state-chip, .badge { display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; font: 800 9px/1.2 var(--mono); letter-spacing: .04em; text-transform: uppercase; }
 .state-chip { min-height: 26px; padding: 0 8px; color: #fff; background: #000; border: 1px solid #000; }
 .state-chip.warning { background: var(--red); border-color: var(--red); }
@@ -108,11 +113,27 @@ svg { fill: none; stroke: currentColor; stroke-linecap: square; stroke-linejoin:
 .monitor-grid { display: grid; grid-template-columns: minmax(0, 8fr) minmax(320px, 4fr); gap: 24px; align-items: start; }
 .video-bezel { margin: 16px; padding: 12px; background: #22282b; border: 4px solid #080808; }
 .video-surface { position: relative; width: 100%; aspect-ratio: 16 / 9; display: grid; place-items: center; overflow: hidden; background: #000; border: 2px solid #4d5558; }
-.live-frame, .modal-image { width: 100%; height: 100%; display: block; object-fit: contain; background: #000; }
+.live-frame, .run-replay, .modal-image { width: 100%; height: 100%; display: block; object-fit: contain; background: #000; }
 .live-frame { position: absolute; inset: 0; }
-.video-hud { position: absolute; z-index: 2; top: 12px; left: 12px; right: 12px; display: flex; justify-content: space-between; color: #73e5a0; font: 700 9px/1 var(--mono); letter-spacing: .08em; text-shadow: 0 1px 3px #000; pointer-events: none; }
+.run-replay { position: absolute; inset: 0; z-index: 1; }
+.run-replay::-webkit-media-controls-panel { background-image: linear-gradient(transparent, rgba(0,0,0,.82)); }
+.video-hud { position: absolute; z-index: 2; top: 12px; left: 12px; right: 12px; display: flex; align-items: flex-start; justify-content: space-between; color: #fff; font: 700 9px/1 var(--mono); letter-spacing: .08em; text-shadow: 0 1px 3px #000; pointer-events: none; }
+.video-hud-primary { display: flex; flex-direction: column; align-items: flex-start; gap: 7px; }
+.video-hud-brand { padding: 3px 5px; color: #fff; background: rgba(0,0,0,.82); }
 .monitor-controls { min-height: 52px; padding: 10px 0 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .monitor-status { display: flex; align-items: center; gap: 9px; color: #d1d1d1; font: 700 9px/1.3 var(--mono); text-transform: uppercase; }
+.monitor-action-cluster { display: flex; align-items: center; gap: 7px; }
+.confidence-control { position: relative; }
+.confidence-toggle { color: #000; background: #fff; border-color: #fff; }
+.confidence-toggle:hover, .confidence-toggle[aria-expanded="true"] { color: #fff; background: #000; border-color: #fff; }
+.confidence-popover { position: absolute; z-index: 12; right: 0; bottom: calc(100% + 9px); width: 270px; padding: 13px; color: #000; background: #fff; border: 2px solid #000; box-shadow: 7px 7px 0 rgba(0,0,0,.42); }
+.confidence-heading, .confidence-scale { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.confidence-heading { font: 900 11px/1.2 var(--mono); text-transform: uppercase; }
+.confidence-heading output { font-size: 16px; }
+.confidence-popover input[type="range"] { width: 100%; margin: 13px 0 7px; accent-color: #000; }
+.confidence-scale { color: #666; font: 700 8px/1.2 var(--mono); text-transform: uppercase; }
+.confidence-popover p { margin: 10px 0 12px; color: #333; font: 500 10px/1.45 var(--mono); }
+.confidence-popover .button { width: 100%; }
 .video-bezel .button-secondary { color: #fff; background: #111; border-color: #666; }
 .video-bezel .button-secondary:hover { background: var(--red); border-color: var(--red); }
 
@@ -535,7 +556,6 @@ kbd { padding: 2px 5px; color: #fff; background: #000; border: 1px solid #000; f
 .archive-log pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 200px; overflow: auto; font: 11px/1.6 var(--mono); }
 .app-shell.page-events .event-table-panel { flex: none; min-height: 250px; }
 .app-shell.page-events .event-table-panel .table-wrap { max-height: 420px; }
-#review-run { margin-bottom: 10px; }
 @media (max-width: 700px) { .run-selector { grid-template-columns: 1fr; } }
 .run-feedback { padding: 10px 12px; margin-bottom: 8px; background: #f2f2f0; color: #111; border-left: 3px solid #f3a712; font: 500 12px/1.5 var(--mono); }
 .run-feedback[data-tone="error"] { border-color: #e8342c; background: #fff0ef; }

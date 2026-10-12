@@ -2,6 +2,7 @@
   const $ = id => document.getElementById(id);
   const alertFeed = $("alert-feed");
   const liveFrame = $("live-frame");
+  const runReplay = $("run-replay");
   const frameFallback = $("frame-fallback");
   const modal = $("snapshot-modal");
   const modalPanel = modal?.querySelector(".modal-panel");
@@ -14,7 +15,64 @@
   let overlayProfile = null;
   let lastRunId = null;
   let overlayVisible = false;
+  let viewMode = localStorage.getItem("trinity-view-mode") === "debug" ? "debug" : "worker";
+  let lastReplaySource = null;
+  let confidenceDirty = false;
   const overlay = $("monitor-zone-overlay");
+
+  function setConfidenceUI(value) {
+    const normalized = Math.min(0.9, Math.max(0.1, Number(value) || 0.4));
+    $("ppe-confidence-range").value = normalized.toFixed(2);
+    const label = `${Math.round(normalized * 100)}%`;
+    $("ppe-confidence-value").textContent = label;
+    $("ppe-confidence-button-value").textContent = label;
+  }
+
+  function closeConfidencePopover() {
+    $("ppe-confidence-popover").classList.add("hidden");
+    $("ppe-confidence-toggle").setAttribute("aria-expanded", "false");
+    confidenceDirty = false;
+  }
+
+  function placeViewToolbarInHud() {
+    const hud = document.querySelector(".video-hud");
+    const toolbar = document.querySelector(".video-view-toolbar");
+    if (!hud || !toolbar) return;
+    let primary = hud.querySelector(".video-hud-primary");
+    if (!primary) {
+      const brand = Array.from(hud.children).find(child => child.id !== "frame-mode");
+      primary = document.createElement("div");
+      primary.className = "video-hud-primary";
+      if (brand) {
+        brand.classList.add("video-hud-brand");
+        primary.appendChild(brand);
+      }
+      hud.prepend(primary);
+    }
+    if (toolbar.parentElement !== primary) primary.appendChild(toolbar);
+  }
+
+  function updateViewSwitch() {
+    document.querySelectorAll("[data-view-mode]").forEach(button => {
+      const active = button.dataset.viewMode === viewMode;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+  }
+
+  function setViewMode(mode) {
+    viewMode = mode === "debug" ? "debug" : "worker";
+    localStorage.setItem("trinity-view-mode", viewMode);
+    updateViewSwitch();
+    lastStaticSource = null;
+    lastReplaySource = null;
+    streamingFeed = false;
+    liveFrame.removeAttribute("src");
+    runReplay.pause();
+    runReplay.removeAttribute("src");
+    runReplay.load();
+    refreshDashboard();
+  }
 
   async function refreshOverlay() {
     try { const response = await fetch("/api/zones"); const payload = await response.json(); overlayProfile = payload.ok ? payload.profile : null; }
@@ -55,9 +113,9 @@
 
   function setRunState(status) {
     const normalized = String(status || "idle").toLowerCase();
-    const ledClass = ["running", "starting", "completed", "error"].includes(normalized) ? normalized : "idle";
+    const ledClass = ["running", "starting", "finalizing", "completed", "error"].includes(normalized) ? normalized : "idle";
     $("monitor-status-led").className = `status-led ${ledClass}`;
-    $("run-state").textContent = ({running:"Active",starting:"Starting…",stopping:"Stopping…",completed:"Completed",error:"Error",failed:"Error",ready:"Ready",stopped:"Stopped"})[normalized] || "Idle";
+    $("run-state").textContent = ({running:"Active",starting:"Starting…",finalizing:"Preparing replay…",stopping:"Stopping…",completed:"Completed",error:"Error",failed:"Error",ready:"Ready",stopped:"Stopped"})[normalized] || "Idle";
   }
 
   function eventKey(event) {
@@ -133,7 +191,10 @@
     const staticKey = `${mode}|${url}`;
     if (lastStaticSource === staticKey && !liveFrame.classList.contains("hidden")) return;
     lastStaticSource = staticKey;
+    lastReplaySource = null;
     streamingFeed = false;
+    runReplay.pause();
+    runReplay.classList.add("hidden");
     liveFrame.onload = () => {
       if (liveFrame.naturalWidth && liveFrame.naturalHeight) $("video-surface").style.aspectRatio = `${liveFrame.naturalWidth} / ${liveFrame.naturalHeight}`;
       liveFrame.classList.remove("hidden");
@@ -150,28 +211,63 @@
   function showLiveStream() {
     if (streamingFeed) return;
     lastStaticSource = null;
+    lastReplaySource = null;
     streamingFeed = true;
+    runReplay.pause();
+    runReplay.classList.add("hidden");
     liveFrame.onload = () => {
       liveFrame.classList.remove("hidden");
       frameFallback.classList.add("hidden");
     };
     liveFrame.onerror = () => { streamingFeed = false; showNoFrame(); };
-    liveFrame.src = `/video-feed?t=${Date.now()}`;
+    liveFrame.src = `/video-feed?mode=${viewMode}&t=${Date.now()}`;
     liveFrame.classList.remove("hidden");
     frameFallback.classList.add("hidden");
     $("feed-state").textContent = "Live stream";
     $("feed-description").textContent = "Receiving local edge frames";
-    $("frame-mode").textContent = "LIVE";
+    $("frame-mode").textContent = viewMode === "debug" ? "LIVE / DEBUG" : "LIVE / WORKER";
     $("feed-led").className = "status-led running";
   }
 
   function showNoFrame() {
     liveFrame.classList.add("hidden");
+    runReplay.pause();
+    runReplay.classList.add("hidden");
     frameFallback.classList.remove("hidden");
     $("feed-state").textContent = "No frame";
     $("feed-description").textContent = "No active frame";
     $("frame-mode").textContent = "STANDBY";
     $("feed-led").className = "status-led idle";
+  }
+
+  function showReplay(run) {
+    const kind = viewMode === "debug" ? "debug_video" : "video";
+    const url = `/api/runs/${encodeURIComponent(run.run_id)}/files/${kind}?inline=1`;
+    const replayKey = `${run.run_id}|${viewMode}`;
+    liveFrame.classList.add("hidden");
+    frameFallback.classList.add("hidden");
+    overlay.classList.add("hidden");
+    streamingFeed = false;
+    lastStaticSource = null;
+    if (lastReplaySource !== replayKey) {
+      lastReplaySource = replayKey;
+      runReplay.src = url;
+      runReplay.load();
+    }
+    runReplay.classList.remove("hidden");
+    runReplay.onerror = () => {
+      lastReplaySource = null;
+      runReplay.classList.add("hidden");
+      showFeedImage(
+        `/api/live-frame?mode=${viewMode}`,
+        "Final frame · replay unavailable",
+        "COMPLETED",
+      );
+    };
+    $("feed-state").textContent = viewMode === "debug" ? "Replay · Debug view" : "Replay · Worker view";
+    $("feed-description").textContent = "Saved run · use the timeline to seek";
+    $("frame-mode").textContent = viewMode === "debug" ? "REPLAY / DEBUG" : "REPLAY / WORKER";
+    $("feed-led").className = "status-led completed";
   }
 
   async function refreshDashboard() {
@@ -182,22 +278,22 @@
       const stats = await statsResponse.json();
       const run = runPayload.run || {};
       const status = String(run.status || "idle").toLowerCase();
-      const running = ["starting", "running", "stopping"].includes(status);
-      const review = $("review-run");
-      review.classList.toggle("hidden", !run.run_id || !["completed", "stopped", "error"].includes(status));
-      review.href = `/events?run_id=${encodeURIComponent(run.run_id || "")}`;
+      const running = ["starting", "running", "stopping", "finalizing"].includes(status);
+      if (!confidenceDirty) setConfidenceUI(run.confidence ?? 0.4);
+      $("ppe-confidence-toggle").disabled = running || !run.source;
       const progress = run.progress || {};
       const feedback = $("run-feedback");
       feedback.classList.toggle("hidden", !running && !["error", "completed", "stopped"].includes(status));
       feedback.dataset.tone = status;
       if (status === "starting") {
         const elapsed = Math.max(0, Math.floor((Date.now() - new Date(run.started_at).getTime()) / 1000));
-        feedback.textContent = `${progress.message || "Starting detector…"} · ${elapsed}s. The first frame may take longer on CPU.`;
+        feedback.textContent = `${progress.message || "Starting detector…"} · ${elapsed}s. The first frame includes model and inference-backend warm-up.`;
       } else if (status === "running") {
         feedback.textContent = `Frame ${progress.frame || 0} / ${progress.total_frames || "—"} · ${(progress.video_seconds || 0).toFixed(1)}s · ${progress.processing_fps || 0} processing FPS · ${progress.persons || 0} person(s), ${progress.ppe_detections || 0} PPE box(es)`;
       } else if (status === "error") {
         feedback.textContent = `Detection failed: ${run.error_message || "Check this run’s pipeline.log for details."}`;
       } else if (status === "stopping") feedback.textContent = "Stopping detection and finishing the output video…";
+      else if (status === "finalizing") feedback.textContent = "Preparing the Worker and Debug videos for browser replay…";
       else feedback.textContent = `${status === "completed" ? "Video completed" : "Detection stopped"}${progress.frame != null ? ` · ${progress.frame} frames processed` : ""}. Press Start detection to replay.`;
       $("start-detection").classList.toggle("hidden",running);
       $("start-detection").disabled = !run.source;
@@ -213,11 +309,12 @@
 
       if (status === "running") {
         showLiveStream();
-      } else if (status === "starting") {
-        showFeedImage("/api/live-frame", "Loading model…", "STARTING");
+      } else if (status === "starting" || status === "finalizing") {
+        showFeedImage(`/api/live-frame?mode=${viewMode}`, status === "finalizing" ? "Preparing replay…" : "Loading model…", status.toUpperCase());
       } else {
         if (streamingFeed) { streamingFeed = false; liveFrame.removeAttribute("src"); }
-        if (overlayVisible) showFeedImage("/api/zone-frame", "Input preview · saved zones", "PREVIEW");
+        if (status === "completed" && run.run_id && run.return_code === 0) showReplay(run);
+        else if (overlayVisible) showFeedImage("/api/zone-frame", "Input preview · saved zones", "PREVIEW");
         else if (stats.live_frame_url) showFeedImage(stats.live_frame_url, status === "completed" ? "Final pipeline frame" : "Latest pipeline frame", status === "completed" ? "COMPLETED" : "LATEST");
         else if (stats.latest_frame_url) showFeedImage(stats.latest_frame_url, "Latest event frame", "SNAPSHOT");
         else showNoFrame();
@@ -228,11 +325,51 @@
     }
   }
 
+  placeViewToolbarInHud();
+  $("ppe-confidence-toggle").addEventListener("click", event => {
+    event.stopPropagation();
+    const popover = $("ppe-confidence-popover");
+    const open = popover.classList.contains("hidden");
+    popover.classList.toggle("hidden", !open);
+    $("ppe-confidence-toggle").setAttribute("aria-expanded", String(open));
+  });
+  $("ppe-confidence-range").addEventListener("input", event => {
+    confidenceDirty = true;
+    const label = `${Math.round(Number(event.target.value) * 100)}%`;
+    $("ppe-confidence-value").textContent = label;
+    $("ppe-confidence-button-value").textContent = label;
+  });
+  $("apply-ppe-confidence").addEventListener("click", async () => {
+    const button = $("apply-ppe-confidence");
+    button.disabled = true;
+    try {
+      const response = await fetch("/api/run/settings", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({confidence: Number($("ppe-confidence-range").value)}),
+      });
+      const payload = await response.json();
+      if (!response.ok || payload.ok === false) throw new Error(payload.error || "Could not save PPE confidence.");
+      confidenceDirty = false;
+      setConfidenceUI(payload.run.confidence);
+      closeConfidencePopover();
+      window.TrinityUI.toast(`PPE confidence set to ${Math.round(payload.run.confidence * 100)}%.`);
+      window.dispatchEvent(new Event("run-changed"));
+    } catch (error) {
+      window.TrinityUI.toast(error.message, "error");
+    } finally {
+      button.disabled = false;
+    }
+  });
+  $("ppe-confidence-popover").addEventListener("click", event => event.stopPropagation());
+  document.addEventListener("click", closeConfidencePopover);
   $("modal-close").addEventListener("click", closeModal);
+  document.querySelectorAll("[data-view-mode]").forEach(button => button.addEventListener("click", () => setViewMode(button.dataset.viewMode)));
   modal.addEventListener("click", event => { if (event.target === modal) closeModal(); });
   document.addEventListener("keydown", event => { if (event.key === "Escape" && !modal.classList.contains("hidden")) closeModal(); });
   window.setInterval(() => { $("current-time").textContent = new Date().toLocaleTimeString(); }, 1000);
   $("current-time").textContent = new Date().toLocaleTimeString();
+  updateViewSwitch();
   pollAlerts();
   window.addEventListener("zone-profile-changed",async () => { lastStaticSource = null; await refreshOverlay(); refreshDashboard(); });
   window.addEventListener("run-changed", () => { lastStaticSource = null; refreshDashboard(); pollAlerts(); });

@@ -143,8 +143,25 @@ def normalize_event(raw: dict[str, Any], source: str) -> dict[str, Any] | None:
         "confidence": round(float(raw.get("confidence", 0.0) or 0.0), 3),
         "frame_path": None if not frame_path or str(frame_path).lower() == "none" else str(frame_path),
         "worker_id_box": parse_box(box),
+        "event_id": raw.get("event_id") or None,
+        "event_action": str(raw.get("event_action", "") or "").upper(),
+        "event_status": str(raw.get("event_status", "") or "").upper(),
+        "track_id": raw.get("track_id") or None,
+        "worker_key": raw.get("worker_key") or None,
+        "ppe_type": raw.get("ppe_type") or None,
+        "ppe_state": raw.get("ppe_state") or None,
+        "reason_code": raw.get("reason_code") or None,
         "source": source,
     }
+
+
+def alert_start_records(events):
+    """Keep lifecycle rows from inflating existing dashboard alert counts."""
+    return [
+        event
+        for event in events
+        if not event.get("event_action") or event["event_action"] == "START"
+    ]
 
 
 def load_json_events(path: Path, source: str) -> list[dict[str, Any]]:
@@ -220,6 +237,31 @@ def load_run_events(run_dir: Path) -> list[dict[str, Any]]:
     return events
 
 
+def latest_run_folders_by_source() -> list[Path]:
+    """Return only the newest started run for each input video."""
+    folders = []
+    seen_sources = set()
+    for folder in sorted(RUNS_DIR.glob("*"), reverse=True):
+        try:
+            if not folder.is_dir() or folder.resolve().parent != RUNS_DIR.resolve():
+                continue
+            metadata = json.loads((folder / "run.json").read_text(encoding="utf-8"))
+            has_event_file = any(
+                path.name not in {"run.json", "progress.json", "zones_snapshot.json"}
+                for path in folder.glob("*.json")
+            ) or any(folder.glob("*.csv"))
+            if not metadata.get("started_at") and not has_event_file:
+                continue
+            identity = metadata.get("source_key") or metadata.get("source") or folder.name
+            if identity in seen_sources:
+                continue
+            seen_sources.add(identity)
+            folders.append(folder)
+        except (OSError, ValueError, json.JSONDecodeError):
+            continue
+    return folders
+
+
 def load_events() -> list[dict[str, Any]]:
     run_dir, _ = active_run()
     if run_dir:
@@ -280,11 +322,13 @@ def event_with_snapshot_url(event: dict[str, Any]) -> dict[str, Any]:
     return enriched
 
 
-def active_live_frame() -> Path | None:
+def active_live_frame(mode="worker") -> Path | None:
     run_dir, _ = active_run()
     if not run_dir:
         return None
-    live_frame = run_dir / "live_frame.jpg"
+    live_frame = run_dir / (
+        "live_frame_debug.jpg" if mode == "debug" else "live_frame.jpg"
+    )
     return live_frame if live_frame.is_file() else None
 
 
@@ -432,7 +476,7 @@ def update_live_frame(frame_bytes: bytes) -> int:
         return latest_live_frame_version
 
 
-def mjpeg_frames():
+def mjpeg_frames(mode="worker"):
     last_version = 0
     last_disk_stamp = None
     while True:
@@ -444,11 +488,15 @@ def mjpeg_frames():
                 ),
                 timeout=0.25,
             )
-            frame = latest_live_frame if latest_live_frame_version != last_version else None
+            frame = (
+                latest_live_frame
+                if mode == "worker" and latest_live_frame_version != last_version
+                else None
+            )
             last_version = latest_live_frame_version
 
         # A failed push must not freeze the preview: the pipeline also writes an atomic JPEG.
-        disk = active_live_frame()
+        disk = active_live_frame(mode)
         if disk is not None:
             try:
                 stamp = (str(disk), disk.stat().st_mtime_ns)
@@ -505,19 +553,21 @@ def api_events():
         events.sort(key=lambda event: event["timestamp"], reverse=True)
     elif request.args.get("scope") == "all":
         records = []
-        for run_dir in sorted(RUNS_DIR.glob("*")):
-            if run_dir.is_dir():
-                records.extend(load_run_events(run_dir))
+        for run_dir in latest_run_folders_by_source():
+            records.extend(load_run_events(run_dir))
         events = [event_with_snapshot_url(event) for event in sorted(records, key=lambda event: event["timestamp"], reverse=True)]
     else:
         events = [event_with_snapshot_url(event) for event in load_events()]
+    if request.args.get("lifecycle") != "all":
+        events = alert_start_records(events)
     limit = request.args.get("limit", type=int)
     if limit is not None and limit > 0:
         events = events[:limit]
     return jsonify({"events": events, "count": len(events)})
 
 
-RUN_FILES = {"video": "output.mp4", "events": "events.csv", "log": "pipeline.log",
+RUN_FILES = {"video": "output.mp4", "debug_video": "output_debug.mp4",
+             "events": "events.csv", "log": "pipeline.log",
              "metadata": "run.json", "progress": "progress.json", "zones": "zones_snapshot.json"}
 
 
@@ -541,23 +591,25 @@ def archived_run_summary(folder):
     for kind, name in RUN_FILES.items():
         path = folder / name
         if path.is_file() and path.resolve().parent == folder.resolve():
-            if kind == "video" and (metadata.get("status") not in {"completed", "stopped"} or metadata.get("return_code", 0) != 0 or not path.stat().st_size):
+            if kind in {"video", "debug_video"} and (
+                metadata.get("status") not in {"completed", "stopped"}
+                or metadata.get("return_code", 0) != 0
+                or not path.stat().st_size
+            ):
                 continue
             files[kind] = {"name": name, "bytes": path.stat().st_size,
                            "url": url_for("api_run_file", run_id=folder.name, kind=kind)}
     return {"id": folder.name, "source_name": metadata.get("source_name", "Unknown"),
             "status": metadata.get("status", "unknown"), "started_at": metadata.get("started_at"),
             "finished_at": metadata.get("finished_at"), "model": Path(metadata.get("model", "")).name,
-            "frames": progress.get("frame"), "event_count": len(load_run_events(folder)),
+            "frames": progress.get("frame"), "event_count": len(alert_start_records(load_run_events(folder))),
             "folder": str(folder), "files": files}
 
 
 @app.route("/api/runs")
 def api_runs():
     runs = []
-    for folder in sorted(RUNS_DIR.glob("*"), reverse=True):
-        if not folder.is_dir() or folder.resolve().parent != RUNS_DIR.resolve():
-            continue
+    for folder in latest_run_folders_by_source():
         try:
             item = archived_run_summary(folder)
             if item["started_at"]:
@@ -589,12 +641,18 @@ def api_run_file(run_id, kind):
     if kind not in item["files"]:
         abort(404)
     path = folder / RUN_FILES[kind]
-    return send_file(path, as_attachment=True, download_name=f"{run_id}_{path.name}", conditional=True)
+    return send_file(
+        path,
+        as_attachment=request.args.get("inline") != "1",
+        download_name=f"{run_id}_{path.name}",
+        mimetype="video/mp4" if kind in {"video", "debug_video"} else None,
+        conditional=True,
+    )
 
 
 @app.route("/api/stats")
 def api_stats():
-    events = load_events()
+    events = alert_start_records(load_events())
     today = date.today()
     todays_events = [
         event for event in events if (parse_timestamp(event["timestamp"]) or datetime.min).date() == today
@@ -639,7 +697,8 @@ def api_run():
 
 @app.route("/api/live-frame")
 def api_live_frame():
-    live_frame = active_live_frame()
+    mode = "debug" if request.args.get("mode") == "debug" else "worker"
+    live_frame = active_live_frame(mode)
     if live_frame is None:
         abort(404)
     response = send_file(
@@ -783,6 +842,15 @@ def api_start_run():
         return jsonify(ok=False, error=str(error)), 400
 
 
+@app.route("/api/run/settings", methods=["POST"])
+def api_run_settings():
+    try:
+        payload = request.get_json(silent=True) or {}
+        return jsonify(ok=True, run=workflow.update_settings(payload.get("confidence")))
+    except (ValueError, OSError) as error:
+        return jsonify(ok=False, error=str(error)), 400
+
+
 @app.route("/api/run/stop", methods=["POST"])
 def api_stop_run():
     try:
@@ -912,8 +980,9 @@ def api_edit_zones():
 
 @app.route("/video-feed")
 def video_feed():
+    mode = "debug" if request.args.get("mode") == "debug" else "worker"
     response = Response(
-        mjpeg_frames(),
+        mjpeg_frames(mode),
         mimetype="multipart/x-mixed-replace; boundary=frame",
     )
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"

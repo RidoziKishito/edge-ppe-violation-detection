@@ -3,6 +3,7 @@
   const safe = window.TrinityUI.escapeHtml;
   let videos = [], pending = false, trigger = null;
   const menu = $("source-menu");
+  const splitLabels = {projectv1:"Project V1", train:"CMOT Train", valid:"CMOT Valid", test:"CMOT Test", local:"Local", uploaded:"Uploaded"};
 
   function toggleMenu(open) {
     menu.classList.toggle("hidden", !open);
@@ -45,7 +46,7 @@
     if (!matches.length) { $("video-list").innerHTML = '<div class="empty-state compact"><strong>No matching videos</strong><p>Choose another split or browse your computer.</p></div>'; return; }
     matches.forEach(video => {
       const button = document.createElement("button"); button.type = "button"; button.className = "picker-item";
-      button.innerHTML = `<span class="file-symbol" aria-hidden="true">▶</span><span><strong>${safe(video.name)}</strong><small>Camera/video ${safe(video.camera_id)}</small></span><span class="badge">${safe(video.split)}</span><span aria-hidden="true">↗</span>`;
+      button.innerHTML = `<span class="file-symbol" aria-hidden="true">▶</span><span><strong>${safe(video.name)}</strong><small>Camera/video ${safe(video.camera_id)}</small></span><span class="badge">${safe(splitLabels[video.split] || video.split)}</span><span aria-hidden="true">↗</span>`;
       button.addEventListener("click", () => selectVideo({id:video.id})); $("video-list").appendChild(button);
     });
   }

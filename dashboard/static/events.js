@@ -5,6 +5,7 @@
   const safe = value => window.TrinityUI.escapeHtml(value);
   const filters = ["filter-start", "filter-end", "filter-camera", "filter-zone", "filter-level", "filter-ppe"];
   let modalTrigger = null;
+  let restoreSidebar = null;
   let cameraOptions = [], optionIndex = -1, exactCamera = "";
   let selectionVersion = 0;
   document.getElementById("event-modal-image").addEventListener("error", () => {
@@ -61,9 +62,18 @@
     modalTrigger = trigger; const modal = $("event-modal"); const image = $("event-modal-image"); const fallback = $("event-modal-fallback");
     $("event-modal-details").innerHTML = `<div><dt>Timestamp</dt><dd>${safe(formatDate(event.timestamp))}</dd></div><div><dt>Camera</dt><dd>${safe(event.camera_id)}</dd></div><div><dt>Zone</dt><dd>${safe(event.zone)}</dd></div><div><dt>Alert</dt><dd>${badge(event.alert_level)}</dd></div><div><dt>Missing PPE</dt><dd>${event.missing_ppe.map(item => safe(window.TrinityUI.ppeLabel(item))).join(", ") || "Not recorded"}</dd></div><div><dt>Confidence</dt><dd>${Math.round((event.confidence || 0) * 100)}%</dd></div>`;
     if (event.snapshot_url) { image.src = event.snapshot_url; image.classList.remove("hidden"); fallback.classList.add("hidden"); } else { image.removeAttribute("src"); image.classList.add("hidden"); fallback.classList.remove("hidden"); }
+    restoreSidebar?.();
+    restoreSidebar = window.TrinityUI.temporarilyHideSidebar();
     modal.classList.remove("hidden"); document.body.classList.add("modal-open"); modal.querySelector(".modal-panel").focus();
   }
-  function closeEvent() { $("event-modal").classList.add("hidden"); document.body.classList.remove("modal-open"); $("event-modal-image").removeAttribute("src"); modalTrigger?.focus(); }
+  function closeEvent() {
+    $("event-modal").classList.add("hidden");
+    document.body.classList.remove("modal-open");
+    $("event-modal-image").removeAttribute("src");
+    restoreSidebar?.();
+    restoreSidebar = null;
+    modalTrigger?.focus();
+  }
   function exportCsv() {
     const header = ["run_id", "timestamp", "camera_id", "zone", "alert_level", "missing_ppe", "confidence"];
     const rows = filteredEvents.map(event => [event.run_id || "", event.timestamp, event.camera_id, event.zone, event.alert_level, event.missing_ppe.join("|"), event.confidence]);

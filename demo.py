@@ -19,6 +19,7 @@ LOG_DIR = EDGE_DIR / "logs"
 RUNS_DIR = LOG_DIR / "runs"
 ACTIVE_RUN_PATH = LOG_DIR / "active_run.json"
 DEFAULT_MODEL = EDGE_DIR / "baseline_yolo26n_best.onnx"
+DEFAULT_PERSON_MODEL = PROJECT_ROOT.parent / "Models" / "yolo11n.onnx"
 DASHBOARD_URL = "http://127.0.0.1:5000"
 
 
@@ -135,6 +136,8 @@ def create_run(source, model, zone_profile, args):
         "source": str(source),
         "source_name": source.name,
         "model": str(model),
+        "ppe_model": str(model),
+        "person_model": str(getattr(args, "person_model", "") or ""),
         "zone_profile": str(zone_profile),
         "camera_id": args.camera_id or source.stem,
         "started_at": datetime.now().replace(microsecond=0).isoformat(),
@@ -180,17 +183,27 @@ def run_pipeline(source, model, zone_profile, run_dir, args):
         str(run_dir),
         "--output",
         str(run_dir / "output.mp4"),
+        "--debug-output",
+        str(run_dir / "output_debug.mp4"),
         "--camera-id",
         args.camera_id or source.stem,
+        "--run-id",
+        run_dir.name,
         "--inference-interval",
         str(args.inference_interval),
         "--alert-cooldown",
         str(args.alert_cooldown),
         "--live-frame",
         str(run_dir / "live_frame.jpg"),
+        "--debug-live-frame",
+        str(run_dir / "live_frame_debug.jpg"),
         "--live-preview-fps",
         str(args.live_preview_fps),
     ]
+    person_model = getattr(args, "person_model", None)
+    if person_model:
+        command.extend(["--person-model", str(person_model)])
+        command.extend(["--person-conf", str(getattr(args, "person_conf", 0.2))])
     if not getattr(args, "no_dashboard", False):
         command.extend(["--frame-push-url", f"{DASHBOARD_URL}/api/push-frame"])
         # If using dashboard, hide the OpenCV window by default to avoid confusion
@@ -210,6 +223,8 @@ def main():
     )
     parser.add_argument("--source", required=True, help="Video path or filename")
     parser.add_argument("--model", default=str(DEFAULT_MODEL))
+    parser.add_argument("--person-model", default=str(DEFAULT_PERSON_MODEL))
+    parser.add_argument("--person-conf", type=float, default=0.2)
     parser.add_argument("--camera-id")
     parser.add_argument("--conf", type=float, default=0.4)
     parser.add_argument("--iou", type=float, default=0.45)
@@ -226,10 +241,14 @@ def main():
 
     source = resolve_edge_path(args.source)
     model = resolve_edge_path(args.model)
+    person_model = resolve_edge_path(args.person_model)
+    args.person_model = person_model
     if not source.is_file():
         parser.error(f"Video does not exist: {source}")
     if not model.is_file():
         parser.error(f"Model does not exist: {model}")
+    if not person_model.is_file():
+        parser.error(f"Person model does not exist: {person_model}")
 
     zone_profile = EDGE_DIR / "configs" / "zones" / f"{source.stem}.json"
     if args.configure_zones or not zone_profile_matches(zone_profile, source):

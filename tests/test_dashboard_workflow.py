@@ -56,6 +56,17 @@ class DashboardWorkflowTests(unittest.TestCase):
         response.close()
         self.assertEqual(self.client.post("/api/videos", json={"id": "../../secret"}).status_code, 400)
 
+    def test_ppe_confidence_setting_is_validated_and_preserved(self):
+        run = self.select()
+        response = self.client.post("/api/run/settings", json={"confidence": 0.25})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json()["run"]["confidence"], 0.25)
+        stored = json.loads((self.workflow.runs / run["run_id"] / "run.json").read_text(encoding="utf-8"))
+        self.assertEqual(stored["confidence"], 0.25)
+        next_run = self.workflow.prepare(self.source)
+        self.assertEqual(next_run["confidence"], 0.25)
+        self.assertEqual(self.client.post("/api/run/settings", json={"confidence": 0.01}).status_code, 400)
+
     def test_library_id_is_portable_and_cmot_is_not_duplicated(self):
         first = self.root / "machine-a" / "media" / "videos" / "input" / "CMOT" / "test" / "0003.mp4"
         second = self.root / "machine-b" / "media" / "videos" / "input" / "CMOT" / "test" / "0003.mp4"
@@ -67,6 +78,15 @@ class DashboardWorkflowTests(unittest.TestCase):
         entries = self.workflow.catalog()
         self.assertEqual(len(entries), 1)
         self.assertEqual(entries[0]["split"], "valid")
+
+    def test_project_v1_library_uses_portable_default_and_distinct_split(self):
+        project_video = self.workflow.project_v1 / "demo_video.avi"
+        project_video.parent.mkdir(parents=True)
+        project_video.write_bytes(self.source.read_bytes())
+        entries = self.workflow.catalog()
+        entry = next(item for item in entries if item["name"] == "demo_video.avi")
+        self.assertEqual(entry["split"], "projectv1")
+        self.assertTrue(str(self.workflow.project_v1).endswith("media\\videos\\input\\Projectv1"))
 
     def test_asset_save_apply_and_source_isolation(self):
         run = self.select()
@@ -114,6 +134,8 @@ class DashboardWorkflowTests(unittest.TestCase):
             args = process.call_args.args[0]
             self.assertIn("http://127.0.0.1:5055/api/push-frame", args)
             self.assertIn("--headless", args)
+            self.assertIn("--debug-output", args)
+            self.assertIn("--debug-live-frame", args)
             process.call_args.kwargs["stdout"].close()
 
     def test_start_rejects_incompatible_yolo_runtime(self):
@@ -156,18 +178,24 @@ class DashboardWorkflowTests(unittest.TestCase):
         write_json(folder / "run.json", run)
         (folder / "pipeline.log").write_text("Detector finished", encoding="utf-8")
         (folder / "output.mp4").write_bytes(b"test-video")
+        (folder / "output_debug.mp4").write_bytes(b"debug-video")
         (folder / "events.csv").write_text("timestamp,camera_id\n", encoding="utf-8")
         write_json(folder / "progress.json", {"frame": 3})
         result = self.client.get("/api/runs").get_json()["runs"][0]
         self.assertEqual(result["event_count"], 0)
         self.assertEqual(result["frames"], 3)
         self.assertIn("video", result["files"])
+        self.assertIn("debug_video", result["files"])
         detail = self.client.get(f"/api/runs/{run['run_id']}").get_json()["run"]
         self.assertEqual(detail["log_tail"], "Detector finished")
         download = self.client.get(result["files"]["video"]["url"])
         self.assertEqual(download.data, b"test-video")
         self.assertIn("attachment", download.headers["Content-Disposition"])
         download.close()
+        inline = self.client.get(f"{result['files']['debug_video']['url']}?inline=1")
+        self.assertEqual(inline.data, b"debug-video")
+        self.assertIn("inline", inline.headers["Content-Disposition"])
+        inline.close()
         run["status"] = "running"
         write_json(folder / "run.json", run)
         self.assertEqual(self.client.get(result["files"]["video"]["url"]).status_code, 404)
@@ -186,6 +214,29 @@ class DashboardWorkflowTests(unittest.TestCase):
         self.assertEqual(original["events"][0]["zone"], "Original zone")
         self.assertEqual(original["events"][0]["run_id"], run["run_id"])
         self.assertEqual(self.client.get(f"/api/events?run_id={second['run_id']}").get_json()["count"], 0)
+
+    def test_only_latest_started_run_per_video_is_listed_and_old_folder_is_pruned(self):
+        first = self.select()
+        first_folder = self.workflow.runs / first["run_id"]
+        first.update(status="completed", started_at="2026-10-09T10:00:00", return_code=0)
+        write_json(first_folder / "run.json", first)
+        write_json(first_folder / "events.json", [{"timestamp": "2026-10-09T10:00:01", "camera_id": "0003", "zone_id": "Z01", "alert_level": "CRITICAL"}])
+
+        second = self.workflow.prepare(self.source)
+        second_folder = self.workflow.runs / second["run_id"]
+        second.update(status="completed", started_at="2026-10-10T10:00:00", return_code=0)
+        write_json(second_folder / "run.json", second)
+        write_json(second_folder / "events.json", [{"timestamp": "2026-10-10T10:00:01", "camera_id": "0003", "zone_id": "Z02", "alert_level": "WARNING"}])
+
+        listed = self.client.get("/api/runs").get_json()["runs"]
+        self.assertEqual([item["id"] for item in listed], [second["run_id"]])
+        all_events = self.client.get("/api/events?scope=all").get_json()["events"]
+        self.assertEqual(len(all_events), 1)
+        self.assertEqual(all_events[0]["run_id"], second["run_id"])
+
+        self.workflow._prune_older_source_runs(second["source_key"], second_folder)
+        self.assertFalse(first_folder.exists())
+        self.assertTrue(second_folder.exists())
 
     def test_stream_falls_back_to_file_without_push(self):
         self.select()

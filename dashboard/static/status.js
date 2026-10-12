@@ -23,12 +23,12 @@
         return;
       }
       const status = String(run.status || "unknown").toLowerCase();
-      $("status-led").className = `status-led ${["running", "starting", "completed", "error"].includes(status) ? status : "unknown"} large`;
-      $("status-title").textContent = ({running:"Edge run active",starting:"Loading detector…",stopping:"Stopping run…",completed:"Run completed",error:"Run reported an error",failed:"Run reported an error",ready:"Video ready to start",stopped:"Run stopped"})[status] || "Runtime status unknown";
+      $("status-led").className = `status-led ${["running", "starting", "finalizing", "completed", "error"].includes(status) ? status : "unknown"} large`;
+      $("status-title").textContent = ({running:"Edge run active",starting:"Loading detector…",finalizing:"Preparing browser replay…",stopping:"Stopping run…",completed:"Run completed",error:"Run reported an error",failed:"Run reported an error",ready:"Video ready to start",stopped:"Run stopped"})[status] || "Runtime status unknown";
       $("status-description").textContent = `${run.camera_id || "Local source"} · ${run.source_name || fileName(run.source)}`;
       $("status-updated").textContent = formatDate(run.finished_at || run.updated_at || run.started_at || run.prepared_at);
       $("input-details").innerHTML = detailRows([["Source", run.source_name || fileName(run.source), run.source], ["Camera ID", run.camera_id], ["Zone profile", fileName(run.zone_profile), run.zone_profile], ["Headless mode", yesNo(run.headless)]]);
-      $("model-details").innerHTML = detailRows([["Model", fileName(run.model), run.model], ["Confidence threshold", run.confidence], ["IoU threshold", run.iou], ["Inference interval", run.inference_interval ? `Every ${run.inference_interval} frame(s)` : null]]);
+      $("model-details").innerHTML = detailRows([["PPE model", fileName(run.ppe_model || run.model), run.ppe_model || run.model], ["Person model", fileName(run.person_model), run.person_model], ["PPE confidence", run.confidence], ["Person confidence", run.person_confidence], ["IoU threshold", run.iou], ["Inference interval", run.inference_interval ? `Every ${run.inference_interval} frame(s)` : null]]);
       $("rule-details").innerHTML = detailRows([["Temporal smoothing", run.smoothing_frames ? `${run.smoothing_frames} consecutive frames` : null], ["Alert cooldown", run.alert_cooldown_seconds != null ? `${run.alert_cooldown_seconds} seconds` : null], ["Live preview target", run.live_preview_fps != null ? `${run.live_preview_fps} FPS` : null], ["Frame push", run.frame_push_url ? "Configured" : "Disabled", run.frame_push_url]]);
       $("output-details").innerHTML = detailRows([["Run ID", run.run_id], ["Started", formatDate(run.started_at)], ["Finished", formatDate(run.finished_at)], ["Return code", run.return_code == null ? "Unavailable" : run.return_code]]);
     } catch (error) {

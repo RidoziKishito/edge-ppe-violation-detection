@@ -51,6 +51,41 @@ def check_ppe_violation(person_box, all_detections):
     return violations
 
 
+def associate_ppe_detections(persons, ppe_detections):
+    """Assign each PPE detection to at most one tracked person.
+
+    The baseline remains center containment. If multiple overlapping person boxes
+    contain the same PPE center, the evidence is left unassigned instead of being
+    counted for both workers.
+    """
+    assignments = {int(person["track_id"]): [] for person in persons}
+    unassigned = []
+
+    for detection in ppe_detections:
+        class_name = detection["class_name"].lower()
+        if class_name == "none":
+            unassigned.append(
+                {**detection, "reason_code": "UNMAPPED_CLASS"}
+            )
+            continue
+
+        x1, y1, x2, y2 = detection["box"]
+        center = ((x1 + x2) / 2, (y1 + y2) / 2)
+        owners = []
+        for person in persons:
+            px1, py1, px2, py2 = person["box"]
+            if px1 <= center[0] <= px2 and py1 <= center[1] <= py2:
+                owners.append(person)
+
+        if len(owners) == 1:
+            assignments[int(owners[0]["track_id"])].append(detection)
+        else:
+            reason = "NO_VALID_PERSON_OWNER" if not owners else "AMBIGUOUS_OWNER"
+            unassigned.append({**detection, "reason_code": reason})
+
+    return assignments, unassigned
+
+
 def classify_alert(active_zones, ppe_violations):
     """
     Classify alert level based on Zone type and PPE violations.

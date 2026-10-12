@@ -9,6 +9,16 @@
     opener.setAttribute("aria-expanded", String(open));
     if (persist) { try { localStorage.setItem("trinity-sidebar", open ? "open" : "closed"); } catch (_) {} }
   }
+  function temporarilyHideSidebar() {
+    const wasOpen = !document.body.classList.contains("sidebar-collapsed");
+    if (wasOpen) setSidebar(false, false);
+    let restored = false;
+    return () => {
+      if (restored) return;
+      restored = true;
+      if (wasOpen) setSidebar(true, false);
+    };
+  }
   setSidebar(!document.body.classList.contains("sidebar-collapsed"), false);
   toggle?.addEventListener("click", () => { setSidebar(false); opener.focus(); });
   opener?.addEventListener("click", () => { setSidebar(true); toggle.focus(); });
@@ -29,6 +39,7 @@
   });
 
   window.TrinityUI = {
+    temporarilyHideSidebar,
     ppeLabel(value) {
       return ({ no_helmet: "Helmet missing", no_gloves: "Gloves missing", no_boots: "Safety boots missing", no_goggle: "Eye protection missing" })[value]
         || String(value || "Unknown").replaceAll("_", " ");
@@ -58,8 +69,8 @@
       if (!response.ok) throw new Error();
       const run = (await response.json()).run || {};
       const status = String(run.status || "idle").toLowerCase();
-      led.className = `status-led ${["running", "starting", "completed", "error"].includes(status) ? status : "idle"}`;
-      state.textContent = ({running:"RUN ACTIVE",starting:"LOADING MODEL",stopping:"STOPPING",completed:"COMPLETED",error:"RUN ERROR",failed:"RUN ERROR",ready:"VIDEO READY",stopped:"STOPPED"})[status] || "SYSTEM IDLE";
+      led.className = `status-led ${["running", "starting", "finalizing", "completed", "error"].includes(status) ? status : "idle"}`;
+      state.textContent = ({running:"RUN ACTIVE",starting:"LOADING MODEL",finalizing:"PREPARING REPLAY",stopping:"STOPPING",completed:"COMPLETED",error:"RUN ERROR",failed:"RUN ERROR",ready:"VIDEO READY",stopped:"STOPPED"})[status] || "SYSTEM IDLE";
       source.textContent = run.source_name || (run.source ? String(run.source).split(/[\\/]/).pop() : "NO SOURCE");
     } catch (error) {
       led.className = "status-led error";

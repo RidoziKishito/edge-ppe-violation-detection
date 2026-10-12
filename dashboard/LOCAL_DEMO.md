@@ -14,6 +14,8 @@ Live view and Zone editor use a full-width camera workspace with vertical scroll
 
 After Start, **Starting / Loading model** remains visible until the first detection finishes. CPU initialization can take several seconds. The monitor then shows the processed frame count, source-video time and actual processing FPS; an empty detection count does not mean playback is stopped. `progress.json` and the unbuffered `pipeline.log` are saved in the active run folder. If HTTP frame pushes fail, the preview falls back to the latest JPEG written by the pipeline. Stop requests a clean shutdown to finalize the output MP4, with forced termination only after a 15-second timeout.
 
+Live Monitor has two display modes that reuse the same inference results. **Worker view** draws one person box plus a small translucent card with worker ID, Person confidence and compact `WORN/MISSING/UNKNOWN` PPE states. **Debug view** draws every raw Person and PPE box with its class and confidence. When a complete run finishes, both modes become seekable H.264 replays directly inside Live Monitor.
+
 ## Portable media layout
 
 Place downloaded CMOT videos in this repository-relative layout:
@@ -24,18 +26,22 @@ edge-pipeline/media/videos/input/
     train/*.mp4
     valid/*.mp4
     test/*.mp4
+  Projectv1/*.mp4
   other-video.mp4
 ```
 
-The library and numeric Camera/video suggestions read the actual filenames, preserving leading zeros. `val` and `validation` folders are also accepted as the valid split. Videos are ignored by Git: copy/download this directory when setting up another computer. No Windows drive letter is required. Optional `TRINITY_CMOT_DIR` overrides the CMOT root; a relative value is resolved from the repository root.
+The library shows `Projectv1` as its own **Project V1** split. The library and numeric Camera/video suggestions read the actual filenames, preserving leading zeros. `val` and `validation` folders are also accepted as the valid split. Videos are ignored by Git: copy/download this directory when setting up another computer. No Windows drive letter is required. Optional `TRINITY_CMOT_DIR` and `TRINITY_PROJECTV1_DIR` override their respective roots; relative values are resolved from the repository root.
 
-Put `baseline_yolo26n_best.onnx` in `models/` or `edge-pipeline/`, or set `TRINITY_MODEL` to an absolute or repository-relative ONNX path. The model used by the previous local run is reused when still available.
+Put `baseline_yolo26n_best.onnx` in `models/` or `edge-pipeline/`, or set `TRINITY_MODEL` to an absolute or repository-relative ONNX path. Put `yolo11n.onnx` beside it, in `edge-pipeline/`, or set `TRINITY_PERSON_MODEL`. Paths may be absolute or repository-relative. The dashboard then runs in dual-detector mode: YOLO11n supplies only `Person` boxes for ByteTrack, while the existing PPE model supplies PPE/no-PPE evidence. If the person model is unavailable, the pipeline keeps the old single-model compatibility mode.
+
+For NVIDIA GPU inference, install `edge-pipeline/requirements-gpu.txt`. The System Status page shows the resolved PPE model and Person model, while `pipeline.log` records whether ONNX Runtime selected `CUDAExecutionProvider`.
 
 ## Reviewing saved runs
 
-Each detection run is stored separately under `edge-pipeline/logs/runs/<run_id>/`; replaying the same input creates a new folder, not an overwrite. After completion, click **View saved run & logs** in Live Monitor, or open **Event Log → Detection runs** and select a run. Use **Refresh history** to pick up runs completed in another tab.
+Each active detection run is stored under `edge-pipeline/logs/runs/<run_id>/`. Once a new run for the same input video finishes successfully, its older run folders are removed; Event Log and Detection runs therefore expose only the newest log for that video. Runs belonging to other videos remain available. After completion, use the replay in Live Monitor, click **View saved run & logs**, or open **Event Log → Detection runs**.
 
-- `output.mp4`: annotated video; download it from the selected run and open in a local video player (the existing MPEG-4 codec is not supported by every browser).
+- `output.mp4`: browser-ready H.264 Worker view video.
+- `output_debug.mp4`: browser-ready H.264 Debug view video with every raw detector box.
 - `events.csv` and `snapshots/`: recorded safety alerts and their evidence images, viewable from event rows. Zero alerts still produces a saved run and CSV header; it does not mean all people were compliant.
 - `pipeline.log`: runtime output/errors, shown in a collapsible panel (last 64 KB) and downloadable in full.
 - `run.json`, `progress.json`: model/runtime settings, status, frame counts and processing progress.
