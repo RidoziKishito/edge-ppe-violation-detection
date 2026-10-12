@@ -8,6 +8,12 @@ from types import SimpleNamespace
 import numpy as np
 
 
+DEFAULT_TRACK_HIGH_THRESH = 0.25
+DEFAULT_TRACK_LOW_THRESH = 0.1
+DEFAULT_NEW_TRACK_THRESH = 0.25
+DEFAULT_TRACK_BUFFER = 60
+
+
 @dataclass
 class TrackingResult:
     active: list[dict]
@@ -20,10 +26,10 @@ class PersonTracker:
 
     def __init__(
         self,
-        track_high_thresh=0.25,
-        track_low_thresh=0.1,
-        new_track_thresh=0.25,
-        track_buffer=30,
+        track_high_thresh=DEFAULT_TRACK_HIGH_THRESH,
+        track_low_thresh=DEFAULT_TRACK_LOW_THRESH,
+        new_track_thresh=DEFAULT_NEW_TRACK_THRESH,
+        track_buffer=DEFAULT_TRACK_BUFFER,
         match_thresh=0.8,
     ):
         try:
@@ -36,13 +42,18 @@ class PersonTracker:
                 ) from exc
             raise
 
+        self.track_low_thresh = float(track_low_thresh)
+        self.track_buffer = max(1, int(track_buffer))
         args = SimpleNamespace(
             track_high_thresh=float(track_high_thresh),
-            track_low_thresh=float(track_low_thresh),
+            track_low_thresh=self.track_low_thresh,
             new_track_thresh=float(new_track_thresh),
-            track_buffer=max(1, int(track_buffer)),
+            track_buffer=self.track_buffer,
             match_thresh=float(match_thresh),
-            fuse_score=True,
+            # The second ByteTrack association is meant to recover an existing
+            # track with low-confidence detections. Fusing the low score into
+            # the IoU cost can reject even a nearly identical weak box.
+            fuse_score=False,
         )
         self._boxes_type = Boxes
         self._tracker = BYTETracker(args=args)

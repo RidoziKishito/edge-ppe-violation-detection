@@ -16,6 +16,8 @@ After Start, **Starting / Loading model** remains visible until the first detect
 
 Live Monitor has two display modes that reuse the same inference results. **Worker view** draws one person box plus a small translucent card with worker ID, Person confidence and compact `WORN/MISSING/UNKNOWN` PPE states. **Debug view** draws every raw Person and PPE box with its class and confidence. When a complete run finishes, both modes become seekable H.264 replays directly inside Live Monitor.
 
+PPE and Person confidence are always visible in the control rail to the right of the camera. They are saved together for the next run. **Zone assets** sits beside **Start detection**, while Zone Editor lists compatible assets directly in its inspector; it loads the active asset automatically, selects the newest compatible asset when none is active, or presents a new blank working profile when none exists. Zone editing stays entirely in the browser.
+
 ## Portable media layout
 
 Place downloaded CMOT videos in this repository-relative layout:

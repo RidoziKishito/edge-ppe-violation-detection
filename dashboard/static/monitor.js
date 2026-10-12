@@ -17,21 +17,15 @@
   let overlayVisible = false;
   let viewMode = localStorage.getItem("trinity-view-mode") === "debug" ? "debug" : "worker";
   let lastReplaySource = null;
-  let confidenceDirty = false;
+  let thresholdsDirty = false;
+  let restoreSidebar = null;
   const overlay = $("monitor-zone-overlay");
 
-  function setConfidenceUI(value) {
-    const normalized = Math.min(0.9, Math.max(0.1, Number(value) || 0.4));
-    $("ppe-confidence-range").value = normalized.toFixed(2);
+  function setThresholdUI(kind, value, fallback) {
+    const normalized = Math.min(0.9, Math.max(0.1, Number(value) || fallback));
+    $(`${kind}-confidence-range`).value = normalized.toFixed(2);
     const label = `${Math.round(normalized * 100)}%`;
-    $("ppe-confidence-value").textContent = label;
-    $("ppe-confidence-button-value").textContent = label;
-  }
-
-  function closeConfidencePopover() {
-    $("ppe-confidence-popover").classList.add("hidden");
-    $("ppe-confidence-toggle").setAttribute("aria-expanded", "false");
-    confidenceDirty = false;
+    $(`${kind}-confidence-value`).textContent = label;
   }
 
   function placeViewToolbarInHud() {
@@ -159,6 +153,8 @@
 
   function openSnapshot(event, trigger) {
     lastTrigger = trigger;
+    restoreSidebar?.();
+    restoreSidebar = window.TrinityUI.temporarilyHideSidebar();
     modal.classList.remove("hidden");
     document.body.classList.add("modal-open");
     modalDetails.innerHTML = `
@@ -184,6 +180,8 @@
     modal.classList.add("hidden");
     document.body.classList.remove("modal-open");
     modalImage.removeAttribute("src");
+    restoreSidebar?.();
+    restoreSidebar = null;
     lastTrigger?.focus();
   }
 
@@ -279,8 +277,13 @@
       const run = runPayload.run || {};
       const status = String(run.status || "idle").toLowerCase();
       const running = ["starting", "running", "stopping", "finalizing"].includes(status);
-      if (!confidenceDirty) setConfidenceUI(run.confidence ?? 0.4);
-      $("ppe-confidence-toggle").disabled = running || !run.source;
+      if (!thresholdsDirty) {
+        setThresholdUI("ppe", run.confidence, 0.4);
+        setThresholdUI("person", run.person_confidence, 0.2);
+      }
+      ["ppe-confidence-range", "person-confidence-range", "apply-confidence-settings"].forEach(id => {
+        $(id).disabled = running || !run.source;
+      });
       const progress = run.progress || {};
       const feedback = $("run-feedback");
       feedback.classList.toggle("hidden", !running && !["error", "completed", "stopped"].includes(status));
@@ -326,34 +329,30 @@
   }
 
   placeViewToolbarInHud();
-  $("ppe-confidence-toggle").addEventListener("click", event => {
-    event.stopPropagation();
-    const popover = $("ppe-confidence-popover");
-    const open = popover.classList.contains("hidden");
-    popover.classList.toggle("hidden", !open);
-    $("ppe-confidence-toggle").setAttribute("aria-expanded", String(open));
+  ["ppe", "person"].forEach(kind => {
+    $(`${kind}-confidence-range`).addEventListener("input", event => {
+      thresholdsDirty = true;
+      $(`${kind}-confidence-value`).textContent = `${Math.round(Number(event.target.value) * 100)}%`;
+    });
   });
-  $("ppe-confidence-range").addEventListener("input", event => {
-    confidenceDirty = true;
-    const label = `${Math.round(Number(event.target.value) * 100)}%`;
-    $("ppe-confidence-value").textContent = label;
-    $("ppe-confidence-button-value").textContent = label;
-  });
-  $("apply-ppe-confidence").addEventListener("click", async () => {
-    const button = $("apply-ppe-confidence");
+  $("apply-confidence-settings").addEventListener("click", async () => {
+    const button = $("apply-confidence-settings");
     button.disabled = true;
     try {
       const response = await fetch("/api/run/settings", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({confidence: Number($("ppe-confidence-range").value)}),
+        body: JSON.stringify({
+          confidence: Number($("ppe-confidence-range").value),
+          person_confidence: Number($("person-confidence-range").value),
+        }),
       });
       const payload = await response.json();
-      if (!response.ok || payload.ok === false) throw new Error(payload.error || "Could not save PPE confidence.");
-      confidenceDirty = false;
-      setConfidenceUI(payload.run.confidence);
-      closeConfidencePopover();
-      window.TrinityUI.toast(`PPE confidence set to ${Math.round(payload.run.confidence * 100)}%.`);
+      if (!response.ok || payload.ok === false) throw new Error(payload.error || "Could not save detection thresholds.");
+      thresholdsDirty = false;
+      setThresholdUI("ppe", payload.run.confidence, 0.4);
+      setThresholdUI("person", payload.run.person_confidence, 0.2);
+      window.TrinityUI.toast(`Thresholds saved: PPE ${Math.round(payload.run.confidence * 100)}% · Person ${Math.round(payload.run.person_confidence * 100)}%.`);
       window.dispatchEvent(new Event("run-changed"));
     } catch (error) {
       window.TrinityUI.toast(error.message, "error");
@@ -361,8 +360,6 @@
       button.disabled = false;
     }
   });
-  $("ppe-confidence-popover").addEventListener("click", event => event.stopPropagation());
-  document.addEventListener("click", closeConfidencePopover);
   $("modal-close").addEventListener("click", closeModal);
   document.querySelectorAll("[data-view-mode]").forEach(button => button.addEventListener("click", () => setViewMode(button.dataset.viewMode)));
   modal.addEventListener("click", event => { if (event.target === modal) closeModal(); });

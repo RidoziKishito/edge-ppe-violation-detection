@@ -52,41 +52,52 @@
     </div>
     <div class="video-bezel">
       <div id="run-feedback" class="run-feedback hidden" role="status" aria-live="polite"></div>
-      <div class="video-surface" id="video-surface">
-        <img id="live-frame" class="live-frame hidden" alt="Processed construction-site safety camera feed">
-        <video id="run-replay" class="run-replay hidden" controls preload="metadata" playsinline aria-label="Saved processed detection video"></video>
-        <canvas id="monitor-zone-overlay" class="monitor-zone-overlay" aria-label="Selected zone polygons"></canvas>
-        <div id="frame-fallback" class="empty-state">
-          <span class="empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 6h16v12H4zM9 10l6 4M15 10l-6 4"/></svg></span>
-          <strong>No camera frame available</strong>
-          <p>Start a local pipeline run or wait for the active source to publish a frame.</p>
-        </div>
-        <div class="video-hud">
-          <div class="video-hud-primary">
-            <span class="video-hud-brand">TRINITY / EDGE VIEW</span>
-            <div class="video-view-toolbar" role="group" aria-label="Detection display mode">
-              <button class="view-switch-button active" type="button" data-view-mode="worker" aria-pressed="true">Worker view</button>
-              <button class="view-switch-button" type="button" data-view-mode="debug" aria-pressed="false">Debug view</button>
-            </div>
+      <div class="camera-console">
+        <div class="video-surface" id="video-surface">
+          <img id="live-frame" class="live-frame hidden" alt="Processed construction-site safety camera feed">
+          <video id="run-replay" class="run-replay hidden" controls preload="metadata" playsinline aria-label="Saved processed detection video"></video>
+          <canvas id="monitor-zone-overlay" class="monitor-zone-overlay" aria-label="Selected zone polygons"></canvas>
+          <div id="frame-fallback" class="empty-state">
+            <span class="empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 6h16v12H4zM9 10l6 4M15 10l-6 4"/></svg></span>
+            <strong>No camera frame available</strong>
+            <p>Select an input video or wait for the first processed frame.</p>
           </div>
-          <span id="frame-mode">STANDBY</span>
+          <div class="video-hud">
+            <div class="video-hud-primary">
+              <span class="video-hud-brand">TRINITY / EDGE VIEW</span>
+              <div class="video-view-toolbar" role="group" aria-label="Detection display mode">
+                <button class="view-switch-button active" type="button" data-view-mode="worker" aria-pressed="true">Worker view</button>
+                <button class="view-switch-button" type="button" data-view-mode="debug" aria-pressed="false">Debug view</button>
+              </div>
+            </div>
+            <span id="frame-mode">STANDBY</span>
+          </div>
         </div>
+        <aside class="detection-settings" aria-label="Detection thresholds">
+          <div class="settings-heading"><span class="panel-index">Detection controls</span><strong>Next run</strong></div>
+          <label class="threshold-control" for="ppe-confidence-range">
+            <span><strong>PPE confidence</strong><output id="ppe-confidence-value" for="ppe-confidence-range">40%</output></span>
+            <input id="ppe-confidence-range" type="range" min="0.10" max="0.90" step="0.05" value="0.40">
+            <small>Lower retains more small PPE boxes.</small>
+          </label>
+          <label class="threshold-control" for="person-confidence-range">
+            <span><strong>Person confidence</strong><output id="person-confidence-value" for="person-confidence-range">20%</output></span>
+            <input id="person-confidence-range" type="range" min="0.10" max="0.90" step="0.05" value="0.20">
+            <small>Weak boxes can preserve an existing worker ID.</small>
+          </label>
+          <button class="button button-compact button-secondary threshold-apply" type="button" id="apply-confidence-settings">Apply thresholds</button>
+          <div class="console-run-actions">
+            <button class="button button-compact button-secondary" id="choose-asset" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 17 3-11 10-2 3 13-8 4zM7 6l13 11"/></svg>Zone assets
+            </button>
+            <button class="button button-compact button-primary" type="button" id="start-detection">▶ Start detection</button>
+            <button class="button button-compact button-danger hidden" type="button" id="stop-detection">■ Stop</button>
+          </div>
+        </aside>
       </div>
       <div class="monitor-controls">
         <div class="monitor-status"><span class="status-led unknown" id="feed-led"></span><span id="feed-description">No active frame</span></div>
-        <div class="monitor-action-cluster">
-          <div class="confidence-control">
-            <button class="button button-compact confidence-toggle" type="button" id="ppe-confidence-toggle" aria-expanded="false" aria-controls="ppe-confidence-popover">PPE CONF <span id="ppe-confidence-button-value">40%</span></button>
-            <div class="confidence-popover hidden" id="ppe-confidence-popover">
-              <div class="confidence-heading"><span>PPE confidence</span><output id="ppe-confidence-value" for="ppe-confidence-range">40%</output></div>
-              <input id="ppe-confidence-range" type="range" min="0.10" max="0.90" step="0.05" value="0.40">
-              <div class="confidence-scale"><span>More detections</span><span>More selective</span></div>
-              <p>Lower values retain more small PPE boxes but can increase false positives.</p>
-              <button class="button button-compact button-primary" type="button" id="apply-ppe-confidence">Apply to next run</button>
-            </div>
-          </div>
-          <div class="run-actions"><button class="button button-compact button-primary" type="button" id="start-detection">▶ Start detection</button><button class="button button-compact button-danger hidden" type="button" id="stop-detection">■ Stop</button></div>
-        </div>
+        <span class="monitor-hint">Threshold changes apply to the next detection run.</span>
       </div>
     </div>
   </article>

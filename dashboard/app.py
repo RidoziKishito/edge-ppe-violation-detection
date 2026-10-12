@@ -54,9 +54,6 @@ LIVE_FRAME_CONDITION = threading.Condition(threading.Lock())
 latest_live_frame: bytes | None = None
 latest_live_frame_version = 0
 
-active_zone_editor_process = None
-
-
 def parse_timestamp(value: Any) -> datetime | None:
     if not value:
         return None
@@ -329,7 +326,13 @@ def active_live_frame(mode="worker") -> Path | None:
     live_frame = run_dir / (
         "live_frame_debug.jpg" if mode == "debug" else "live_frame.jpg"
     )
-    return live_frame if live_frame.is_file() else None
+    if live_frame.is_file():
+        return live_frame
+    # A new run always has a prepared worker frame before the first inference.
+    # Use it while Debug view is waiting for its first rendered debug frame so
+    # the UI never falls back to a misleading "No camera frame" state.
+    fallback = run_dir / "live_frame.jpg"
+    return fallback if mode == "debug" and fallback.is_file() else None
 
 
 def active_source_path(metadata: dict[str, Any] | None) -> Path | None:
@@ -846,7 +849,12 @@ def api_start_run():
 def api_run_settings():
     try:
         payload = request.get_json(silent=True) or {}
-        return jsonify(ok=True, run=workflow.update_settings(payload.get("confidence")))
+        return jsonify(
+            ok=True,
+            run=workflow.update_settings(
+                payload.get("confidence"), payload.get("person_confidence")
+            ),
+        )
     except (ValueError, OSError) as error:
         return jsonify(ok=False, error=str(error)), 400
 
@@ -872,6 +880,7 @@ def api_zone_assets():
                 assets.append({field: asset.get(field) for field in ("id", "name", "source_name", "updated_at")})
         except (OSError, ValueError):
             continue
+    assets.sort(key=lambda asset: str(asset.get("updated_at") or ""), reverse=True)
     return jsonify(assets=assets, active_id=(metadata or {}).get("zone_asset_id"), source_name=(metadata or {}).get("source_name"))
 
 
@@ -942,40 +951,6 @@ def api_zone_frame():
     response = send_file(fallback, mimetype="image/jpeg", max_age=0)
     response.headers["Cache-Control"] = "no-store"
     return response
-
-
-@app.route("/api/edit-zones", methods=["POST"])
-def api_edit_zones():
-    global active_zone_editor_process
-    
-    if active_zone_editor_process is not None and active_zone_editor_process.poll() is None:
-        return jsonify({"ok": False, "error": "Editor is already open"}), 400
-
-    run_dir, metadata = active_run()
-    if not run_dir or not metadata:
-        return jsonify({"ok": False, "error": "No active run"}), 400
-    
-    source_path = active_source_path(metadata)
-    if source_path is None:
-        return jsonify({"ok": False, "error": "Source not found in metadata"}), 400
-
-    import subprocess
-    import sys
-    
-    check_py_path = EDGE_PIPELINE_DIR / "check.py"
-    # Run the zone editor without showing a console window
-    creation_flags = 0
-    if sys.platform == "win32":
-        creation_flags = subprocess.CREATE_NO_WINDOW
-
-    active_zone_editor_process = subprocess.Popen([
-        sys.executable,
-        str(check_py_path),
-        "--source",
-        str(source_path)
-    ], cwd=str(EDGE_PIPELINE_DIR), creationflags=creation_flags)
-    
-    return jsonify({"ok": True, "message": "Zone editor launched"})
 
 
 @app.route("/video-feed")

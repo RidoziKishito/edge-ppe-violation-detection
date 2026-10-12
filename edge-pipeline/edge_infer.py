@@ -28,7 +28,7 @@ prepare_onnx_runtime()
 import display
 import rule_engine
 from logger import EdgeLogger
-from person_tracker import PersonTracker
+from person_tracker import DEFAULT_TRACK_LOW_THRESH, PersonTracker
 from pipeline_control import (
     WorkerEventEngine,
     should_publish_live_frame,
@@ -64,7 +64,13 @@ def _class_ids(model, class_name):
     return [int(class_id) for class_id, name in items if str(name).lower() == class_name.lower()]
 
 
-def infer_person_detections(model, frame, conf_thres, iou_thres):
+def infer_person_detections(
+    model,
+    frame,
+    conf_thres,
+    iou_thres,
+    track_low_thresh=DEFAULT_TRACK_LOW_THRESH,
+):
     """Detect people with a general-purpose detector for ByteTrack input."""
     persons = []
     person_class_ids = _class_ids(model, "person")
@@ -74,14 +80,17 @@ def infer_person_detections(model, frame, conf_thres, iou_thres):
         frame,
         stream=True,
         verbose=False,
-        conf=min(conf_thres, 0.1),
+        # Keep weak Person boxes available for ByteTrack's second association.
+        # They can rescue an existing ID, but cannot create a new track because
+        # new tracks still have to pass new_track_thresh in PersonTracker.
+        conf=min(float(conf_thres), float(track_low_thresh)),
         iou=iou_thres,
         classes=person_class_ids,
     )
     for result in results:
         for box in result.boxes:
             x1, y1, x2, y2 = map(int, box.xyxy[0])
-            confidence = math.ceil(float(box.conf[0]) * 100) / 100
+            confidence = float(box.conf[0])
             persons.append({
                 "box": (x1, y1, x2, y2),
                 "conf": confidence,
@@ -123,7 +132,7 @@ def infer_detections(model, frame, conf_thres, iou_thres):
         frame,
         stream=True,
         verbose=False,
-        conf=min(conf_thres, 0.1),
+        conf=min(float(conf_thres), DEFAULT_TRACK_LOW_THRESH),
         iou=iou_thres,
     )
     for result in results:
