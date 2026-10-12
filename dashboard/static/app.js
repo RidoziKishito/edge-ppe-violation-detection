@@ -118,10 +118,11 @@
       const states = subjectWorker.ppe_states && typeof subjectWorker.ppe_states === "object"
         ? subjectWorker.ppe_states
         : {};
-      const shortPpe = value => ({ helmet: "HEL", vest: "VST", gloves: "GLV", boots: "BTS", goggles: "EYE" })[value]
+      const supportedPpe = new Set(["helmet", "vest"]);
+      const shortPpe = value => ({ helmet: "HEL", vest: "VST" })[value]
         || String(value || "PPE").slice(0, 3).toUpperCase();
-      const worn = Object.entries(states).filter(([, state]) => state === "WORN").map(([ppe]) => shortPpe(ppe));
-      let notWorn = Object.entries(states).filter(([, state]) => state === "NOT_WORN").map(([ppe]) => shortPpe(ppe));
+      const worn = Object.entries(states).filter(([ppe, state]) => supportedPpe.has(ppe) && state === "WORN").map(([ppe]) => shortPpe(ppe));
+      let notWorn = Object.entries(states).filter(([ppe, state]) => supportedPpe.has(ppe) && state === "NOT_WORN").map(([ppe]) => shortPpe(ppe));
       if (!notWorn.length) {
         notWorn = (event.missing_ppe || []).map(value => shortPpe(String(value).replace(/^no_/, "")));
       }
@@ -157,7 +158,7 @@
     temporarilyHideSidebar,
     setupSnapshotSpotlight,
     ppeLabel(value) {
-      return ({ no_helmet: "Helmet missing", no_gloves: "Gloves missing", no_boots: "Safety boots missing", no_goggle: "Eye protection missing" })[value]
+      return ({ helmet: "Helmet worn", no_helmet: "Helmet missing", vest: "Safety vest worn", no_vest: "Safety vest missing" })[value]
         || String(value || "Unknown").replaceAll("_", " ");
     },
     escapeHtml(value) {

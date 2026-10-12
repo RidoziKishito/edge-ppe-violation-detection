@@ -37,6 +37,9 @@ from pipeline_control import (
 import worker_state
 
 
+PPE_STUDY_CLASSES = {"helmet", "no_helmet", "vest", "no_vest"}
+
+
 def load_zones(zones_path):
     try:
         with open(zones_path, "r", encoding="utf-8") as handle:
@@ -100,19 +103,29 @@ def infer_person_detections(
 
 
 def infer_ppe_detections(model, frame, conf_thres, iou_thres):
-    """Detect PPE evidence while deliberately ignoring this model's Person class."""
+    """Detect only the four labels in the helmet/vest study scope."""
     detections = []
+    names = model.names
+    items = names.items() if isinstance(names, dict) else enumerate(names)
+    ppe_class_ids = [
+        int(class_id)
+        for class_id, name in items
+        if str(name).lower() in PPE_STUDY_CLASSES
+    ]
+    if not ppe_class_ids:
+        raise ValueError("The PPE model does not expose the four-label study scope.")
     results = model(
         frame,
         stream=True,
         verbose=False,
         conf=conf_thres,
         iou=iou_thres,
+        classes=ppe_class_ids,
     )
     for result in results:
         for box in result.boxes:
             class_name = model.names[int(box.cls[0])]
-            if str(class_name).lower() == "person":
+            if str(class_name).lower() not in PPE_STUDY_CLASSES:
                 continue
             x1, y1, x2, y2 = map(int, box.xyxy[0])
             confidence = math.ceil(float(box.conf[0]) * 100) / 100
@@ -147,7 +160,10 @@ def infer_detections(model, frame, conf_thres, iou_thres):
             }
             if str(class_name).lower() == "person":
                 persons.append(detection)
-            elif confidence >= conf_thres:
+            elif (
+                str(class_name).lower() in PPE_STUDY_CLASSES
+                and confidence >= conf_thres
+            ):
                 other_detections.append(detection)
     return persons, other_detections
 

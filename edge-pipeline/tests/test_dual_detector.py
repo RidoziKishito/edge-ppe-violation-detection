@@ -53,6 +53,7 @@ class DualDetectorTests(unittest.TestCase):
         self.assertEqual(
             [item["class_name"] for item in detections], ["helmet", "no_helmet"]
         )
+        self.assertEqual(model.call_args.kwargs["classes"], [0, 7])
 
 
 if __name__ == "__main__":

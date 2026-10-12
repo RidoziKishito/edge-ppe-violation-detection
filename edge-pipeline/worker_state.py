@@ -11,25 +11,10 @@ PPE_SPECS = {
         "negative": "no_helmet",
         "expected_region": "HEAD",
     },
-    "goggles": {
-        "positive": "goggles",
-        "negative": "no_goggle",
-        "expected_region": "HEAD",
-    },
     "vest": {
         "positive": "vest",
-        "negative": None,
+        "negative": "no_vest",
         "expected_region": "TORSO",
-    },
-    "gloves": {
-        "positive": "gloves",
-        "negative": "no_gloves",
-        "expected_region": "HANDS",
-    },
-    "boots": {
-        "positive": "boots",
-        "negative": "no_boots",
-        "expected_region": "FEET",
     },
 }
 

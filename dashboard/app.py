@@ -36,7 +36,11 @@ ZONE_NAMES = {
     "Z02": "Warning Zone (Scaffolding)",
 }
 
-PPE_TYPES = ["no_helmet", "no_gloves", "no_boots", "no_goggle"]
+# Dataset V2 exposes four detector labels. The dashboard reports them as two
+# compliance requirements and only treats the negative labels as violations.
+PPE_MODEL_LABELS = ["helmet", "no_helmet", "vest", "no_vest"]
+PPE_REQUIREMENTS = ["helmet", "vest"]
+PPE_VIOLATION_TYPES = ["no_helmet", "no_vest"]
 
 app = Flask(
     __name__,
@@ -128,6 +132,22 @@ def parse_scene_workers(value: Any) -> list[dict[str, Any]]:
         box = parse_box(record.get("box"))
         if not box:
             continue
+        states = record.get("ppe_states", {})
+        states = (
+            {key: state for key, state in states.items() if key in PPE_REQUIREMENTS}
+            if isinstance(states, dict)
+            else {}
+        )
+        confidences = record.get("ppe_confidences", {})
+        confidences = (
+            {
+                key: confidence
+                for key, confidence in confidences.items()
+                if key in PPE_REQUIREMENTS
+            }
+            if isinstance(confidences, dict)
+            else {}
+        )
         workers.append(
             {
                 "track_id": record.get("track_id"),
@@ -135,9 +155,13 @@ def parse_scene_workers(value: Any) -> list[dict[str, Any]]:
                 "confidence": round(
                     float(record.get("confidence", 0.0) or 0.0), 3
                 ),
-                "violations": parse_list_value(record.get("violations")),
-                "ppe_states": record.get("ppe_states", {}),
-                "ppe_confidences": record.get("ppe_confidences", {}),
+                "violations": [
+                    item
+                    for item in parse_list_value(record.get("violations"))
+                    if item in PPE_VIOLATION_TYPES
+                ],
+                "ppe_states": states,
+                "ppe_confidences": confidences,
             }
         )
     return workers
@@ -156,7 +180,16 @@ def normalize_event(raw: dict[str, Any], source: str) -> dict[str, Any] | None:
     if parsed_time is None:
         return None
 
-    missing_ppe = raw.get("missing_ppe", raw.get("violation_type", []))
+    raw_missing_ppe = parse_list_value(
+        raw.get("missing_ppe", raw.get("violation_type", []))
+    )
+    missing_ppe = [
+        item for item in raw_missing_ppe if item in PPE_VIOLATION_TYPES
+    ]
+    # Legacy demo logs contain classes outside the V2 study scope. Excluding
+    # those records keeps every dashboard total scientifically comparable.
+    if raw_missing_ppe and not missing_ppe:
+        return None
     frame_path = raw.get("frame_path", raw.get("snapshot_path"))
     box = raw.get("worker_id_box", raw.get("bbox"))
 
@@ -166,7 +199,7 @@ def normalize_event(raw: dict[str, Any], source: str) -> dict[str, Any] | None:
         "zone": normalize_zone(raw.get("zone", raw.get("zone_id"))),
         "zone_ids": parse_list_value(raw.get("zone", raw.get("zone_id"))),
         "alert_level": str(raw.get("alert_level", "NORMAL")).upper(),
-        "missing_ppe": parse_list_value(missing_ppe),
+        "missing_ppe": missing_ppe,
         "confidence": round(float(raw.get("confidence", 0.0) or 0.0), 3),
         "frame_id": int(raw.get("frame_id", 0) or 0),
         "frame_path": None if not frame_path or str(frame_path).lower() == "none" else str(frame_path),
@@ -176,7 +209,11 @@ def normalize_event(raw: dict[str, Any], source: str) -> dict[str, Any] | None:
         "event_status": str(raw.get("event_status", "") or "").upper(),
         "track_id": raw.get("track_id") or None,
         "worker_key": raw.get("worker_key") or None,
-        "ppe_type": raw.get("ppe_type") or None,
+        "ppe_type": (
+            raw.get("ppe_type")
+            if raw.get("ppe_type") in PPE_MODEL_LABELS
+            else None
+        ),
         "ppe_state": raw.get("ppe_state") or None,
         "reason_code": raw.get("reason_code") or None,
         "association_method": raw.get("association_method") or None,
@@ -580,12 +617,21 @@ def index():
 
 @app.route("/analytics")
 def analytics():
-    return render_template("analytics.html", active_page="analytics", ppe_types=PPE_TYPES)
+    return render_template(
+        "analytics.html",
+        active_page="analytics",
+        ppe_types=PPE_VIOLATION_TYPES,
+        model_labels=PPE_MODEL_LABELS,
+    )
 
 
 @app.route("/events")
 def events_page():
-    return render_template("events.html", active_page="events", ppe_types=PPE_TYPES)
+    return render_template(
+        "events.html",
+        active_page="events",
+        ppe_types=PPE_VIOLATION_TYPES,
+    )
 
 
 @app.route("/zones")

@@ -2,7 +2,7 @@
 {% block title %}Event Log | Trinity{% endblock %}
 {% block content %}
 <header class="page-header">
-  <div class="page-heading"><p class="eyebrow"><span class="signal-dot"></span> Evidence archive</p><h1>Recorded PPE alerts</h1><p>Filter, inspect and export the event evidence produced by the local edge pipeline.</p></div>
+  <div class="page-heading"><p class="eyebrow"><span class="signal-dot"></span> Evidence archive</p><h1>Helmet and vest alerts</h1><p>Filter, inspect and export confirmed <code>no_helmet</code> and <code>no_vest</code> events produced at the edge.</p></div>
   <div class="header-actions"><button class="button button-primary" type="button" id="export-csv"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 19h14"/></svg>Export CSV</button></div>
 </header>
 
@@ -24,7 +24,7 @@
     <div class="field camera-combobox"><label for="filter-camera">Camera/video</label><input type="text" id="filter-camera" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Type a video number" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="camera-options"><div id="camera-options" class="camera-options hidden" role="listbox" aria-label="Matching CMOT video numbers"></div></div>
     <label class="field">Zone<select id="filter-zone"><option value="">All zones</option><option value="warning_zone">Warning zone</option><option value="danger_zone">Danger zone</option></select></label>
     <label class="field">Alert level<select id="filter-level"><option value="">All levels</option><option value="WARNING">Warning</option><option value="CRITICAL">Critical</option><option value="NORMAL">Normal</option></select></label>
-    <label class="field">PPE type<select id="filter-ppe"><option value="">All PPE types</option>{% for ppe in ppe_types %}<option value="{{ ppe }}">{{ ppe.replace('no_', '').replace('_', ' ') | title }} missing</option>{% endfor %}</select></label>
+    <label class="field">Violation type<select id="filter-ppe"><option value="">All supported violations</option><option value="no_helmet">Helmet missing</option><option value="no_vest">Safety vest missing</option></select></label>
   </div>
 </section>
 

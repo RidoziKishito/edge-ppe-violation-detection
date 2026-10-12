@@ -3,37 +3,44 @@
 {% block head %}<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>{% endblock %}
 {% block content %}
 <header class="page-header">
-  <div class="page-heading"><p class="eyebrow"><span class="signal-dot"></span> Safety analytics</p><h1>Violation patterns, made legible</h1><p>Explore recorded events by time, PPE class and configured safety zone.</p></div>
-  <div class="header-actions"><span class="state-chip" id="analytics-state">Loading events</span></div>
+  <div class="page-heading"><p class="eyebrow"><span class="signal-dot"></span> Safety analytics</p><h1>Helmet and vest compliance</h1><p>Four study labels are normalized into two worker-safety requirements for consistent event analysis.</p></div>
+  <div class="header-actions"><span class="state-chip scope-chip">4-label scope</span><span class="state-chip" id="analytics-state">Loading events</span></div>
 </header>
 
 <section class="metric-strip analytics-summary" aria-label="Analytics summary">
-  <div class="metric-cell"><span class="metric-label">Last 24 hours</span><strong id="metric-24h">—</strong></div>
-  <div class="metric-cell"><span class="metric-label">Last 7 days</span><strong id="metric-7d">—</strong></div>
-  <div class="metric-cell"><span class="metric-label">Most affected zone</span><strong class="metric-text" id="metric-zone">—</strong></div>
-  <div class="metric-cell"><span class="metric-label">Top missing PPE</span><strong class="metric-text" id="metric-ppe">—</strong></div>
+  <div class="metric-cell"><span class="metric-label">Confirmed events · 24 h</span><strong id="metric-24h">—</strong></div>
+  <div class="metric-cell"><span class="metric-label">Confirmed events · 7 d</span><strong id="metric-7d">—</strong></div>
+  <div class="metric-cell"><span class="metric-label">Highest event-count zone</span><strong class="metric-text" id="metric-zone">—</strong></div>
+  <div class="metric-cell"><span class="metric-label">Most frequent violation</span><strong class="metric-text" id="metric-ppe">—</strong></div>
+</section>
+
+<section class="analysis-scope" aria-label="PPE analysis scope">
+  <span class="analysis-scope-label">Study scope</span>
+  <span><b>Helmet</b> <code>helmet ↔ no_helmet</code></span>
+  <span><b>Safety vest</b> <code>vest ↔ no_vest</code></span>
+  <p>Confirmed <strong>NOT WORN</strong> events only.</p>
 </section>
 
 <section class="analytics-grid" id="analytics-content">
   <article class="panel chart-panel chart-primary">
-    <div class="panel-header"><div><p class="panel-index">01 / Temporal distribution</p><h2>Violations by hour</h2></div><span class="panel-unit">24H WINDOW</span></div>
+    <div class="panel-header"><div><p class="panel-index">01 / Temporal distribution</p><h2>Hourly violation frequency</h2><p class="panel-method">Confirmed events grouped into one-hour bins.</p></div><span class="panel-unit">COUNT · LAST 24 H</span></div>
     <div class="chart-wrap"><canvas id="hour-chart" aria-label="Violations during the last 24 hours"></canvas></div>
   </article>
   <article class="panel chart-panel">
-    <div class="panel-header"><div><p class="panel-index">02 / Equipment</p><h2>Missing PPE</h2></div><span class="panel-unit">ALL EVENTS</span></div>
+    <div class="panel-header"><div><p class="panel-index">02 / Compliance outcome</p><h2>Violation count by PPE</h2><p class="panel-method">Helmet and vest NOT WORN events only.</p></div><span class="panel-unit">CONFIRMED COUNT</span></div>
     <div class="chart-wrap"><canvas id="ppe-chart" aria-label="Violations grouped by PPE type"></canvas></div>
   </article>
   <article class="panel chart-panel">
-    <div class="panel-header"><div><p class="panel-index">03 / Severity</p><h2>Alert level trend</h2></div><span class="panel-unit">7 DAY WINDOW</span></div>
+    <div class="panel-header"><div><p class="panel-index">03 / Severity</p><h2>Daily alert severity</h2><p class="panel-method">Warning and critical events grouped by local date.</p></div><span class="panel-unit">COUNT · LAST 7 D</span></div>
     <div class="chart-wrap"><canvas id="level-chart" aria-label="Warning and critical alerts over seven days"></canvas></div>
   </article>
   <article class="panel heatmap-panel">
-    <div class="panel-header"><div><p class="panel-index">04 / Spatial distribution</p><h2>Zone × PPE matrix</h2></div><span class="panel-unit">EVENT COUNT</span></div>
+    <div class="panel-header"><div><p class="panel-index">04 / Spatial distribution</p><h2>Zone × PPE violation count</h2><p class="panel-method">Each cell is the confirmed event count for one zone and requirement.</p></div><span class="panel-unit">CONFIRMED COUNT</span></div>
     <div class="table-wrap labelled-scroll" tabindex="0" aria-label="Zone violation matrix">
-      <table class="data-table heatmap-table" id="heatmap-table"><thead><tr><th>Zone</th>{% for ppe in ppe_types %}<th>{{ ppe.replace('no_', '') }}</th>{% endfor %}</tr></thead><tbody></tbody></table>
+      <table class="data-table heatmap-table" id="heatmap-table"><thead><tr><th>Zone</th><th>Helmet missing</th><th>Safety vest missing</th></tr></thead><tbody></tbody></table>
     </div>
   </article>
 </section>
 <div class="empty-state page-empty hidden" id="analytics-empty"><strong>No event data available</strong><p>Run the edge pipeline or connect an event log to populate safety analytics.</p></div>
 {% endblock %}
-{% block scripts %}<script>window.TRINITY_PPE_TYPES = {{ ppe_types | tojson }};</script><script src="{{ url_for('static', filename='analytics.js') }}" defer></script>{% endblock %}
+{% block scripts %}<script>window.TRINITY_PPE_TYPES = {{ ppe_types | tojson }}; window.TRINITY_MODEL_LABELS = {{ model_labels | tojson }};</script><script src="{{ url_for('static', filename='analytics.js') }}" defer></script>{% endblock %}
