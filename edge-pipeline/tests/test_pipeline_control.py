@@ -167,6 +167,84 @@ class TestWorkerEventEngine(unittest.TestCase):
         self.assertEqual(emitted, [])
         self.assertTrue(engine.events[key]["active"])
 
+    def test_one_unknown_observation_does_not_break_activation(self):
+        engine = WorkerEventEngine(
+            required_frames=3,
+            cooldown_seconds=0,
+            activation_unknown_grace=1,
+        )
+        key, item = worker_observation(frame_id=1)
+        self.assertEqual(
+            engine.process({key: item}, 0.1, active_track_ids={7}), []
+        )
+        self.assertEqual(
+            engine.process(
+                {},
+                0.2,
+                active_track_ids={7},
+                worker_ppe_states={(7, "helmet"): "UNKNOWN"},
+            ),
+            [],
+        )
+        item["frame_id"] = 3
+        item["timestamp_ms"] = 300
+        self.assertEqual(
+            engine.process({key: item}, 0.3, active_track_ids={7}), []
+        )
+        item["frame_id"] = 4
+        item["timestamp_ms"] = 400
+        emitted = engine.process({key: item}, 0.4, active_track_ids={7})
+        self.assertEqual(emitted[0]["event_action"], "START")
+        self.assertEqual(emitted[0]["confirmation_observations"], 3)
+
+    def test_worn_observation_resets_unconfirmed_violation(self):
+        engine = WorkerEventEngine(required_frames=2, cooldown_seconds=0)
+        key, item = worker_observation(frame_id=1)
+        engine.process({key: item}, 0.1, active_track_ids={7})
+        engine.process(
+            {},
+            0.2,
+            active_track_ids={7},
+            worker_ppe_states={(7, "helmet"): "WORN"},
+        )
+        self.assertEqual(
+            engine.process({key: item}, 0.3, active_track_ids={7}), []
+        )
+
+    def test_confirmed_violation_escalates_when_worker_enters_danger_zone(self):
+        engine = WorkerEventEngine(required_frames=1, cooldown_seconds=0)
+        key, item = worker_observation(frame_id=1)
+        started = engine.process({key: item}, 0.1, active_track_ids={7})
+        self.assertEqual(started[0]["alert_level"], "WARNING")
+        self.assertTrue(started[0]["capture_snapshot"])
+
+        danger_zone = {
+            "id": "Z01",
+            "name": "Lifting area",
+            "type": "danger_zone",
+        }
+        escalated = engine.process(
+            {},
+            0.2,
+            active_track_ids={7},
+            worker_ppe_states={(7, "helmet"): "UNKNOWN"},
+            worker_contexts={
+                7: {
+                    "frame_id": 2,
+                    "timestamp_ms": 200,
+                    "bbox": [5, 5, 105, 205],
+                    "active_zones": [danger_zone],
+                    "violation_alert_level": "CRITICAL",
+                }
+            },
+            frame_id=2,
+        )
+        self.assertEqual(len(escalated), 1)
+        self.assertEqual(escalated[0]["event_action"], "UPDATE")
+        self.assertEqual(escalated[0]["reason_code"], "ZONE_ESCALATION")
+        self.assertEqual(escalated[0]["alert_level"], "CRITICAL")
+        self.assertTrue(escalated[0]["capture_snapshot"])
+
 
 if __name__ == "__main__":
     unittest.main()

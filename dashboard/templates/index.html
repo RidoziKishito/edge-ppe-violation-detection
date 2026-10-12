@@ -129,10 +129,17 @@
     </div>
     <div class="modal-evidence-grid">
       <div class="modal-body">
-        <img id="modal-image" class="modal-image hidden" alt="Selected PPE alert snapshot">
+        <div class="snapshot-stage hidden" id="modal-stage">
+          <img id="modal-image" class="modal-image" alt="Selected PPE alert snapshot">
+          <div class="snapshot-spotlight-layer" id="modal-spotlights" aria-label="Violating worker in this alert snapshot"></div>
+          <div class="snapshot-hover-hint">Move near the violating worker to inspect</div>
+        </div>
         <div id="modal-fallback" class="empty-state"><strong>Snapshot unavailable</strong><p>The event was recorded without an accessible image file.</p></div>
       </div>
-      <dl class="evidence-details" id="modal-details"></dl>
+      <div class="evidence-summary">
+        <p class="evidence-recap" id="modal-recap"></p>
+        <dl class="evidence-details" id="modal-details"></dl>
+      </div>
     </div>
   </div>
 </div>

@@ -1,4 +1,5 @@
 import csv
+import json
 import os
 import cv2
 from datetime import datetime
@@ -31,6 +32,10 @@ class EdgeLogger:
         "start_frame",
         "end_frame",
         "duration_ms",
+        "confirmation_observations",
+        "frame_width",
+        "frame_height",
+        "scene_workers",
     ]
 
     def __init__(self, log_dir="logs", source_name="video", filename=None, run_id=None):
@@ -71,6 +76,17 @@ class EdgeLogger:
         cv2.imwrite(snapshot_path, frame_img)
         return snapshot_path
 
+    def _save_event_snapshot(self, event, frame_img):
+        """Save the prepared recap evidence for the worker that started the alert."""
+        if frame_img is None or not event.get("capture_snapshot"):
+            return "None"
+        evidence = frame_img.copy()
+        return self._save_snapshot(
+            event.get("camera_id", "unknown"),
+            event.get("frame_id", 0),
+            evidence,
+        )
+
     def _append(self, row):
         with open(self.filepath, mode="a", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=self.FIELDNAMES)
@@ -82,11 +98,7 @@ class EdgeLogger:
         zones = event.get("active_zones", [])
         violations = event.get("violations", [])
         box = event.get("bbox", [])
-        snapshot = self._save_snapshot(
-            event.get("camera_id", "unknown"),
-            event.get("frame_id", 0),
-            frame_img if event.get("event_action") == "START" else None,
-        )
+        snapshot = self._save_event_snapshot(event, frame_img)
         self._append(
             {
                 "timestamp": timestamp,
@@ -114,6 +126,14 @@ class EdgeLogger:
                 "start_frame": event.get("start_frame"),
                 "end_frame": event.get("end_frame"),
                 "duration_ms": event.get("duration_ms"),
+                "confirmation_observations": event.get(
+                    "confirmation_observations"
+                ),
+                "frame_width": event.get("frame_width"),
+                "frame_height": event.get("frame_height"),
+                "scene_workers": json.dumps(
+                    event.get("scene_workers", []), separators=(",", ":")
+                ),
             }
         )
 

@@ -439,10 +439,43 @@ def run_pipeline(
                     for state in cached_worker_states
                     for ppe_type, record in state["ppe"].items()
                 },
+                worker_contexts={
+                    state["track_id"]: {
+                        "frame_id": state["frame_id"],
+                        "timestamp_ms": state["timestamp_ms"],
+                        "bbox": state["person"]["box"],
+                        "active_zones": state["active_zones"],
+                        "violation_alert_level": rule_engine.classify_alert(
+                            state["active_zones"], ["latched_violation"]
+                        ),
+                    }
+                    for state in cached_worker_states
+                },
                 frame_id=frame_id,
             )
             for log_data in valid_logs:
-                safety_logger.log_event(log_data, frame_img=worker_frame)
+                log_data["frame_width"] = width
+                log_data["frame_height"] = height
+                log_data["scene_workers"] = [
+                    {
+                        "track_id": state["track_id"],
+                        "box": state["person"]["box"],
+                        "confidence": state["person"]["confidence"],
+                        "violations": worker_state.state_violations(state),
+                        "ppe_states": {
+                            ppe_type: record["state"]
+                            for ppe_type, record in state["ppe"].items()
+                        },
+                        "ppe_confidences": {
+                            ppe_type: record["confidence"]
+                            for ppe_type, record in state["ppe"].items()
+                        },
+                    }
+                    for state in cached_worker_states
+                ]
+                evidence_frame = frame.copy()
+                display.draw_zones(evidence_frame, zones_config)
+                safety_logger.log_event(log_data, frame_img=evidence_frame)
 
         video_time_seconds = (frame_id - 1) / fps
         if (live_frame_path or frame_push_url) and should_publish_live_frame(

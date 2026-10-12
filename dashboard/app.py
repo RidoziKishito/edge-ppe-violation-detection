@@ -113,6 +113,36 @@ def parse_box(value: Any) -> list[int] | None:
     return None
 
 
+def parse_scene_workers(value: Any) -> list[dict[str, Any]]:
+    if isinstance(value, list):
+        records = value
+    else:
+        try:
+            records = json.loads(str(value or "[]"))
+        except (TypeError, ValueError, json.JSONDecodeError):
+            return []
+    workers = []
+    for record in records if isinstance(records, list) else []:
+        if not isinstance(record, dict):
+            continue
+        box = parse_box(record.get("box"))
+        if not box:
+            continue
+        workers.append(
+            {
+                "track_id": record.get("track_id"),
+                "box": box,
+                "confidence": round(
+                    float(record.get("confidence", 0.0) or 0.0), 3
+                ),
+                "violations": parse_list_value(record.get("violations")),
+                "ppe_states": record.get("ppe_states", {}),
+                "ppe_confidences": record.get("ppe_confidences", {}),
+            }
+        )
+    return workers
+
+
 def normalize_zone(value: Any) -> str:
     zones = parse_list_value(value)
     if not zones:
@@ -138,6 +168,7 @@ def normalize_event(raw: dict[str, Any], source: str) -> dict[str, Any] | None:
         "alert_level": str(raw.get("alert_level", "NORMAL")).upper(),
         "missing_ppe": parse_list_value(missing_ppe),
         "confidence": round(float(raw.get("confidence", 0.0) or 0.0), 3),
+        "frame_id": int(raw.get("frame_id", 0) or 0),
         "frame_path": None if not frame_path or str(frame_path).lower() == "none" else str(frame_path),
         "worker_id_box": parse_box(box),
         "event_id": raw.get("event_id") or None,
@@ -148,16 +179,35 @@ def normalize_event(raw: dict[str, Any], source: str) -> dict[str, Any] | None:
         "ppe_type": raw.get("ppe_type") or None,
         "ppe_state": raw.get("ppe_state") or None,
         "reason_code": raw.get("reason_code") or None,
+        "association_method": raw.get("association_method") or None,
+        "association_confidence": round(
+            float(raw.get("association_confidence", 0.0) or 0.0), 3
+        ),
+        "visibility": raw.get("visibility") or None,
+        "start_frame": int(raw.get("start_frame", 0) or 0),
+        "end_frame": int(raw.get("end_frame", 0) or 0),
+        "duration_ms": int(raw.get("duration_ms", 0) or 0),
+        "confirmation_observations": int(
+            raw.get("confirmation_observations", 0) or 0
+        ),
+        "frame_width": int(raw.get("frame_width", 0) or 0),
+        "frame_height": int(raw.get("frame_height", 0) or 0),
+        "scene_workers": parse_scene_workers(raw.get("scene_workers")),
         "source": source,
     }
 
 
 def alert_start_records(events):
-    """Keep lifecycle rows from inflating existing dashboard alert counts."""
+    """Expose new violations and meaningful zone-risk escalations."""
     return [
         event
         for event in events
-        if not event.get("event_action") or event["event_action"] == "START"
+        if not event.get("event_action")
+        or event["event_action"] == "START"
+        or (
+            event["event_action"] == "UPDATE"
+            and event.get("reason_code") == "ZONE_ESCALATION"
+        )
     ]
 
 
