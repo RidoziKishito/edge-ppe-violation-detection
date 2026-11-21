@@ -1,0 +1,19 @@
+{
+  "source": "0003.mp4",
+  "width": 1820,
+  "height": 780,
+  "zones": [
+    {
+      "id": "W01",
+      "name": "Manual Warning Area",
+      "type": "warning_zone",
+      "polygon": [[100, 90], [1720, 90], [1720, 750], [100, 750]]
+    },
+    {
+      "id": "D01",
+      "name": "Manual Danger Area",
+      "type": "danger_zone",
+      "polygon": [[930, 90], [1720, 90], [1720, 750], [930, 750]]
+    }
+  ]
+}

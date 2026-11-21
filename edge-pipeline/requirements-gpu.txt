@@ -1,0 +1,14 @@
+# NVIDIA desktop/laptop runtime. Install this file instead of requirements.txt.
+--extra-index-url https://download.pytorch.org/whl/cu128
+opencv-python
+onnxruntime-gpu==1.26.0
+torch==2.7.1+cu128
+torchvision==0.22.1+cu128
+numpy
+flask
+ultralytics==8.4.56
+onnx
+onnxslim
+pillow
+lap>=0.5.12
+imageio-ffmpeg>=0.6.0

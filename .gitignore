@@ -76,3 +76,6 @@ edge-pipeline/logs/
 dashboard/data/zone_assets/
 edge-pipeline/configs/zones/input_*.json
 edge-pipeline/configs/zones/*.json.bak
+
+# Local agent scratch output
+.codex-temp/
