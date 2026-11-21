@@ -22,6 +22,28 @@ __pycache__/
 ai-model/data/
 merged-ppe/
 
+# Local dataset collections — never commit raw images, labels or archives
+Dataset/
+dataset/
+datasets/
+**/Dataset v1/
+**/Dataset_v1/
+**/PPE_Legacy_v1/
+**/Mendeley_PPE_v6/
+**/Pictor_v3/
+**/Roboflow_CSS_v30/
+**/Roboflow_Construction_Site_Safety_v30_raw/
+**/SHWD/
+**/SHWD_official/
+**/CMOT/
+**/Construction_Safety_GSNVB_RF100/
+**/CHV_Color_Helmet_Vest/
+**/Safety_TUCJE_v1/
+**/Dataset_v2/
+*.zip
+*.7z
+*.rar
+
 # Training outputs / downloaded results
 local_runs/
 runs/
